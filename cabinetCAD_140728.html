@@ -1,0 +1,660 @@
+<html>
+	<head>
+		<title>cabinetCAD</title>
+		<style>canvas { width: 100%; height: 100% }</style>
+	</head>
+	<body>
+		<script src="js/three.js"></script>
+		<script src="js/orbitcontrols.js"></script>
+		<script src="js/trackball.js"></script>
+		<script src="js/windowresize.js"></script>
+		<script src="js/simplecabinet.js"></script>
+		<script src="js/betterbounding.js"></script>
+		<script src="js/jquery-2.1.1.min.js"></script>
+		<script>
+			//Global Variables
+			var scene, camera, renderer, controls, windowResize, intersects;
+			var wireFrameMat, panelMatWhite, panelMatCream, panelMatBlack, panelMatBirch, highlightMat;
+			var mouse = {x: 0, y: 0};
+			var pointOnFace = {x: 0, y: 0, z: 0};
+			var initialSize = {x: 0, y: 0, z: 0};
+			var click = false;
+			var moving = false;
+			var shift = false;
+			var del = false;
+			var _a = false;
+			var drawing = false;
+			var walls = new THREE.Object3D(), wallsShape = [], wallsShapeHighlight = new THREE.Object3D();
+			var selected = {selected: false, index: null};
+			var container = [];
+			var cabinets = new THREE.Object3D();
+			var floor = new THREE.Mesh();
+			var arrow = new THREE.Mesh();
+			var circle = new THREE.Mesh( new THREE.CylinderGeometry(3,3,1,20,1), new THREE.MeshBasicMaterial({color: 0xff0000}));
+			//circle.rotation.x = Math.PI / 2;
+			circle.position.set(0,1,0);
+			//circle.visible = false;
+			
+			var highlightGeometry = new THREE.Geometry();
+			//var projector = new THREE.Projector();
+			//temporary variablr
+			var cabinet;
+			var keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40, SHIFT: 16};
+			wireFrameMat = new THREE.MeshBasicMaterial({
+				wireframe: true,
+				color: new THREE.Color(0xffae00),
+				opacity: 1.0,
+				transparent: true,
+				visible: true,
+				side: THREE.BackSide
+			});
+			panelMatWhite = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0xebebeb),
+				shading: THREE.NoShading,
+				visible: true,
+				opacity: 1.0,
+				transparent: true,
+			});
+			panelMatCream = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0xfff5e0),
+				shading: THREE.NoShading,
+				visible: true,
+				opacity: 1.0,
+				transparent: true,
+			});
+			panelMatBlack = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0x3b3b3b),
+				shading: THREE.NoShading,
+				visible: true,
+				opacity: 1.0,
+				transparent: true,
+			});
+			panelMatBirch = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0xEDCE8C),
+				shading: THREE.NoShading,
+				visible: true,
+				opacity: 1.0,
+				transparent: true,
+			});
+			highlightMat = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0xF2CE6B),
+				shading: THREE.NoShading,
+				visible: true,
+				opacity: 1.0,
+				transparent: true,
+			});
+			var highlight = new THREE.Mesh(highlightGeometry, highlightMat);
+
+			//Run program
+			init();
+			animate();
+
+			function init(){
+				//SCENE
+				scene = new THREE.Scene();
+				//CAMERA
+				camera = new THREE.PerspectiveCamera(65, window.innerWidth/window.innerHeight, 0.1, 10000);
+				scene.add(camera);
+				camera.position.set(0,250,950);
+				camera.lookAt(scene.position);
+				//RENDERER
+				renderer = new THREE.WebGLRenderer();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				document.body.appendChild(renderer.domElement);
+				renderer.shadowMapEnabled = true;
+				//EVENTS
+				controls = new THREE.OrbitControls(camera, document, renderer.domElement);
+				windowResize = new THREEx.WindowResize(renderer, camera);
+				//LIGHTS
+				var mainLight = 0.8;
+				var otherLights = 0.15;
+				var light = new THREE.AmbientLight( 0x222222 );
+				scene.add( light );
+				var light = new THREE.PointLight(0xffffff,mainLight,4500);
+				light.position.set(500,800,500);
+				scene.add(light);
+				var light = new THREE.PointLight(0xffffff,otherLights,4500);
+				light.position.set(0,500,500);
+				scene.add(light);
+				var light = new THREE.PointLight(0xffffff,otherLights,4500);
+				light.position.set(-500,500,500);
+				scene.add(light);
+				var light = new THREE.PointLight(0xffffff,otherLights,4500);
+				light.position.set(-500,500,500);
+				scene.add(light);
+				var light = new THREE.PointLight(0xffffff,otherLights,4500);
+				light.position.set(-500,500,500);
+				scene.add(light);
+				var light = new THREE.PointLight(0xffffff,otherLights,4500);
+				light.position.set(0,500,500);
+				scene.add(light);
+				var light = new THREE.PointLight(0xffffff,otherLights,4500);
+				light.position.set(500,100,500);
+				scene.add(light);
+				var light = new THREE.PointLight(0xffffff,otherLights,4500);
+				light.position.set(500,100,500);
+				scene.add(light);
+				var directionalLight = new THREE.DirectionalLight( 0xaaaaaa, 0.5 );
+				directionalLight.position.set( 100, 100, 500 );
+				//directionalLight.castShadow = true;
+				directionalLight.onlyShadow = true;
+				scene.add( directionalLight );
+				//FLOOR
+				var faceMat = new THREE.MeshLambertMaterial({color: 0xeeeeee,side: THREE.DoubleSide,shading: THREE.FlatShading});
+				var wireMat = new THREE.MeshBasicMaterial({color:0x999999,wireframe:true,transparent:true});
+				floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000, 10, 10),faceMat);
+				floor.name = "floor";
+				floor.receiveShadow = true;
+				//floor.position.y = -2;
+				floor.rotation.x = Math.PI / 2;				
+				var floorWire = floor.clone();
+				floorWire.name = "floor";
+				floorWire.material = wireMat;
+				scene.add(floor);
+				scene.add(floorWire);
+				//ENVIRONMENT
+				var skyBoxGeometry = new THREE.BoxGeometry( 10000, 10000, 10000 );
+				var skyBoxMaterial = new THREE.MeshBasicMaterial( { color: 0xded9c3, side: THREE.BackSide } );
+				var skyBox = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
+				skyBox.name = "floor";
+				scene.add(skyBox);
+
+				//**** TEMP: add simple cabinet ****
+				testCabinet = new THREE.SimpleCabinet(0,0);
+				testCabinet2 = new THREE.SimpleCabinet(0,70);
+				cabinets.add(testCabinet.cabinet);
+				cabinets.add(testCabinet2.cabinet);
+				scene.add(cabinets);
+				scene.add(testCabinet.outlineMesh);
+				scene.add(circle);
+				scene.add(wallsShapeHighlight);
+				scene.add(walls);
+				createArrow();
+				initPlanes();
+
+				//LISTENERS
+				document.addEventListener('mousedown', onMouseDown, false);
+				document.addEventListener('mouseup', onMouseUp, false);
+				document.addEventListener('mousemove', onMouseMove, false);
+
+			}
+
+			function animate(){
+				requestAnimationFrame( animate );
+				//controls.update();
+				render();		
+				update();
+			}
+
+			function update()
+			{
+				checkIntersect( cabinets.children );
+
+				if(intersects[0] && !selected.selected){
+					for(var i = 0; i < container.length; i++){
+						container[i].boundingBox.visibleFalse();
+					}
+					container[parseInt(intersects[0].object.name)].boundingBox.visibleTrue();
+
+					intersects[0].face.color.setHex(0xfff555);
+					intersects[0].object.geometry.colorsNeedUpdate = true;
+
+					if(click && !shift && !moving){
+						if(selected.selected){
+							selected.selected = false;
+							container[selected.index].boundingBox.setUnselected();
+						}else{
+							selected.selected = true;
+							selected.index = parseInt(intersects[0].object.name);
+							for(var i = 0; i < container.length; i++){
+								container[i].boundingBox.setUnselected();
+							}
+							container[selected.index].boundingBox.setSelected();
+						}
+						//click = false;
+					}
+					arrow.visible = false;
+				}else if(intersects[0] && selected.selected){
+					if(intersects[0].object.name == container[selected.index].cabinet.name && !click && !moving){
+						setArrow();
+						setAxisPosition(intersects[0].point);
+						pointOnFace.x = intersects[0].point.x * intersects[0].face.normal.x;
+						pointOnFace.y = intersects[0].point.y * intersects[0].face.normal.y;
+						pointOnFace.z = intersects[0].point.z * intersects[0].face.normal.z;
+						initialSize.x = container[intersects[0].object.name].overallSize.x;
+						initialSize.y = container[intersects[0].object.name].overallSize.y;
+						initialSize.z = container[intersects[0].object.name].overallSize.z;
+					}
+					if(click && !shift){
+						moving = true;
+						var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
+						var projector = new THREE.Projector();
+						projector.unprojectVector( vector, camera );
+						
+						var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+						if(pointOnFace.x != 0){
+							var intersectPlane = raycaster.intersectObject(XZplane);
+							var newSize = initialSize.x + ( intersectPlane[0].point.x - pointOnFace.x);
+							if(newSize < 20){
+								container[intersects[0].object.name].overallSize.x = 20;
+							}else if(newSize > 100){
+								container[intersects[0].object.name].overallSize.x = 100;
+							}else{
+								container[intersects[0].object.name].overallSize.x = newSize;
+							}
+							for (var i = scene.children.length - 1; i > 0; i--) {
+								if(scene.children[i].name == "line"){
+									scene.remove(scene.children[i]);
+								}
+							};
+							container[intersects[0].object.name].drawCabinet();
+							container[intersects[0].object.name].boundingBox.visibleTrue();
+							setArrow();
+						}else if(pointOnFace.z != 0){
+							var intersectPlane = raycaster.intersectObject(YZplane);
+							var newSize = initialSize.y + ((intersectPlane[0].point.z - pointOnFace.z));
+							if(newSize < 20){
+								container[intersects[0].object.name].overallSize.y = 20;
+							}else if(newSize > 160){
+								container[intersects[0].object.name].overallSize.y = 160;
+							}else{
+								container[intersects[0].object.name].overallSize.y = newSize;
+							}
+							for (var i = scene.children.length - 1; i > 0; i--) {
+								if(scene.children[i].name == "line"){
+									scene.remove(scene.children[i]);
+								}
+							};
+							container[intersects[0].object.name].drawCabinet();
+							container[intersects[0].object.name].boundingBox.visibleTrue();
+							setArrow();
+						}else if(pointOnFace.y != 0){
+							var intersectPlane = raycaster.intersectObject(XYplane);
+							var newSize = initialSize.z + ( intersectPlane[0].point.y - pointOnFace.y);
+							if(newSize < 20){
+								container[intersects[0].object.name].overallSize.z = 20;
+							}else if(newSize > 100){
+								container[intersects[0].object.name].overallSize.z = 100;
+							}else{
+								container[intersects[0].object.name].overallSize.z = newSize;
+							}
+							for (var i = scene.children.length - 1; i > 0; i--) {
+								if(scene.children[i].name == "line"){
+									scene.remove(scene.children[i]);
+								}
+							};
+							container[intersects[0].object.name].drawCabinet();
+							container[intersects[0].object.name].boundingBox.visibleTrue();
+							setArrow();
+						}
+					}
+				}else{
+					for(var i = 0; i < container.length; i++){
+						if(!selected.selected){
+							container[i].boundingBox.visibleFalse();
+						}
+						container[i].removeArrow();
+					}
+					if(click && !shift && !drawing){
+						selected.selected = false;
+						container[selected.index].boundingBox.setUnselected();
+					}
+					if(_a){
+						setAxisPosition(new THREE.Vector3(0,0,0));
+						var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
+						var projector = new THREE.Projector();
+						projector.unprojectVector( vector, camera );
+						
+						var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+						var intersectPlane = raycaster.intersectObject(XZplane);
+						//console.log(intersectPlane[0].point.x + " , " + intersectPlane[0].point.y + " , " + intersectPlane[0].point.z);
+						if(!drawing){
+							drawing = true;
+							circle.position.set(intersectPlane[0].point.x, 1, intersectPlane[0].point.z);
+							circle.visible = true;
+						}else{
+							var nearest = roundToNearest(intersectPlane[0].point.x, intersectPlane[0].point.z, 100, 10);
+							circle.position.set(nearest.x, 1, nearest.z);
+							if(click && !shift){
+								wallsShape.push(new THREE.Vector2 (nearest.x, nearest.z));
+								if(wallsShape.length > 1){
+										if(wallsShape[0].x == wallsShape[wallsShape.length - 1].x && wallsShape[0].y == wallsShape[wallsShape.length - 1].y){
+										var extrudeShape = new THREE.Shape(wallsShape);
+										var extrusionSettings = {
+											curveSegments: 1, 
+											amount: 400, 
+											bevelEnabled: false, 
+										};
+										var extrusionGeom = new THREE.ExtrudeGeometry(extrudeShape, extrusionSettings);
+										var extrusion = new THREE.Mesh(extrusionGeom, panelMatWhite);
+										extrusion.rotation.x = Math.PI/2;
+										extrusion.translateZ(-400);
+										walls.add(extrusion);
+										//scene.remove(wallsShapeHighlight);
+										var length = wallsShape.length;
+										for(var i  = 0; i < length; i++){
+											wallsShape.pop();
+										}
+									}
+								}
+							}
+							if(wallsShape.length > 0){
+								var wallEdge = cylinderAsLine(nearest.x, nearest.z, wallsShape[wallsShape.length - 1].x, wallsShape[wallsShape.length - 1].y);
+								if(click){
+									wallsShapeHighlight.add(wallEdge);
+								}else{
+									wallsShapeHighlight.remove(wallsShapeHighlight.children[wallsShapeHighlight.children.length - 1]);
+									wallsShapeHighlight.add(wallEdge);
+								}
+							}
+							if(del){
+								wallsShape.pop();
+								wallsShapeHighlight.remove(wallsShapeHighlight.children[wallsShapeHighlight.children.length - 1]);
+								del = false;
+							}
+						}
+					}
+					click = false;
+					arrow.visible = false;
+				}				
+
+				
+				//process click
+				if(click){
+					
+				}
+			}
+
+			function render() 
+			{
+				renderer.render( scene, camera );
+			}
+
+			function checkIntersect(objects){
+				var projector = new THREE.Projector();
+				var mouseVector = new THREE.Vector3();
+				mouseVector.x = mouse.x;
+				mouseVector.y = mouse.y;
+				var raycaster = projector.pickingRay( mouseVector.clone(), camera );
+				intersects = raycaster.intersectObjects( objects, true );
+			}
+
+			function onMouseDown(e){
+				// update the mouse variable
+				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+				click = true;
+			}
+
+			function onMouseUp(e){
+				click = false;
+				moving = false;
+			}
+
+			function onMouseMove(e){
+				// update the mouse variable
+				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+			}
+
+			function initPlanes(){
+	
+				XYplane = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0xFF0000, opacity: 0.25, transparent: true, wireframe: true } ) );
+				XYplane.visible = false;
+				XYplane.material.side = THREE.DoubleSide;
+				YZplane = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x0000FF, opacity: 0.25, transparent: true, wireframe: true } ) );
+				YZplane.visible = false;
+				YZplane.material.side = THREE.DoubleSide;
+				YZplane.rotation.y = -Math.PI/2;
+				XZplane = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x00FF00, opacity: 0.25, transparent: true, wireframe: true } ) );
+				XZplane.visible = false;
+				XZplane.material.side = THREE.DoubleSide;
+				XZplane.rotation.x = -Math.PI/2;
+				scene.add( XYplane );
+				scene.add( YZplane );
+				scene.add( XZplane );
+			}
+
+			function setAxisPosition(position){
+				//controlTargets[0].position = position;
+				XYplane.position = position;
+				YZplane.position = position;
+				XZplane.position = position;
+			}
+
+			function createArrow(){
+				var points = [];
+				points.push(new THREE.Vector3(0,0,7));
+				points.push(new THREE.Vector3(2,0,3));
+				points.push(new THREE.Vector3(1,0,3));
+				points.push(new THREE.Vector3(1,0,-3));
+				points.push(new THREE.Vector3(2,0,-3));
+				points.push(new THREE.Vector3(0,0,-7));
+				points.push(new THREE.Vector3(-2,0,-3));
+				points.push(new THREE.Vector3(-1,0,-3));
+				points.push(new THREE.Vector3(-1,0,3));
+				points.push(new THREE.Vector3(-2,0,3));
+				points.push(new THREE.Vector3(0,0,7));
+				var geometry = new THREE.LatheGeometry(points, 24);
+				arrow = new THREE.Mesh(geometry, panelMatBlack);
+				arrow.scale.set(3,3,3);
+				arrow.visible = false;
+				arrow.name = "arrow";
+				scene.add(arrow);
+			}
+
+			function setArrow(){
+				if(intersects[0].face.normal.x != 0){
+					if(intersects[0].face.normal.x > 0){
+						arrow.rotation.y = Math.PI/2;
+						arrow.rotation.x = 0;
+						arrow.position.x = (container[selected.index].location.x + (container[selected.index].overallSize.x) + 25);
+						arrow.position.z = (container[selected.index].location.z + (container[selected.index].overallSize.y / 2));
+						arrow.position.y = (container[selected.index].location.y + (container[selected.index].overallSize.z / 2));
+						arrow.visible = true;
+					}else{
+						arrow.rotation.y = Math.PI/2;
+						arrow.rotation.x = 0;
+						arrow.position.x = (container[selected.index].location.x - 25);
+						arrow.position.z = (container[selected.index].location.z + (container[selected.index].overallSize.y / 2));
+						arrow.position.y = (container[selected.index].location.y + (container[selected.index].overallSize.z / 2));
+						arrow.visible = true;
+					}
+				}
+				if(intersects[0].face.normal.z != 0){
+					if(intersects[0].face.normal.z > 0){
+						arrow.rotation.y = 0;
+						arrow.rotation.x = 0;
+						arrow.position.x = (container[selected.index].location.x + (container[selected.index].overallSize.x / 2));
+						arrow.position.z = (container[selected.index].location.z + (container[selected.index].overallSize.y) + 25);
+						arrow.position.y = (container[selected.index].location.y + (container[selected.index].overallSize.z / 2));
+						arrow.visible = true;
+					}else{
+						arrow.rotation.y = 0;
+						arrow.rotation.x = 0;
+						arrow.position.x = (container[selected.index].location.x + (container[selected.index].overallSize.x / 2));
+						arrow.position.z = (container[selected.index].location.z - 25);
+						arrow.position.y = (container[selected.index].location.y + (container[selected.index].overallSize.z / 2));
+						arrow.visible = true;
+					}
+				}
+				if(intersects[0].face.normal.y != 0){
+					if(intersects[0].face.normal.y > 0){
+						arrow.rotation.y = 0;
+						arrow.rotation.x = Math.PI/2;
+						arrow.position.x = (container[selected.index].location.x + (container[selected.index].overallSize.x / 2));
+						arrow.position.z = (container[selected.index].location.z + (container[selected.index].overallSize.y / 2));
+						arrow.position.y = (container[selected.index].location.y + (container[selected.index].overallSize.z) + 25);
+						arrow.visible = true;
+					}else{
+						arrow.rotation.y = 0;
+						arrow.rotation.x = Math.PI/2;
+						arrow.position.x = (container[selected.index].location.x + (container[selected.index].overallSize.x / 2));
+						arrow.position.z = (container[selected.index].location.z + (container[selected.index].overallSize.y / 2));
+						arrow.position.y = (container[selected.index].location.y - 25);
+						arrow.visible = true;
+					}
+				}
+			}
+
+			function roundToNearest(numX, numY, nearest, threshold){
+				var value = {x: numX, z: numY, near: 0};
+				var upX = Math.ceil(numX/nearest)*nearest;
+				var downX = Math.floor(numX/nearest)*nearest;
+				var upY = Math.ceil(numY/nearest)*nearest;
+				var downY = Math.floor(numY/nearest)*nearest;
+				var nearArray = [{x: upX, z: upY, near: getLength(numX, numY, upX, upY)}, {x: upX, z: downY, near: getLength(numX, numY, upX, downY)}, {x: downX, z: downY, near: getLength(numX, numY, downX, downY)}, {x: downX, z: upY, near: getLength(numX, numY, downX, upY)}];
+				if(wallsShape.length > 0){
+					for(var i = 0; i < wallsShape.length; i++){
+						nearArray.push({x: wallsShape[i].x, z: wallsShape[i].y, near: getLength(numX, numY, wallsShape[i].x, wallsShape[i].y)});
+					}
+				}
+				nearArray.sort(
+					function(a,b){
+						if(a.near < b.near)
+							return -1;
+						if(a.near > b.near)
+							return 1;
+						return 0;
+					}
+				);
+				if(Math.sqrt((nearArray[0].x - numX) * (nearArray[0].x - numX)) < threshold){
+					value.x = nearArray[0].x;
+				}
+				if(Math.sqrt((nearArray[0].z - numY) * (nearArray[0].z - numY)) < threshold){
+					value.z = nearArray[0].z;
+				}
+				return value;
+				
+			}
+
+			function cylinderAsLine(x, y, a, b){
+				console.log(x + " , " + y + " , " + a + " , " + b)
+				var cylinder;
+				var _length = Math.sqrt(((a - x) * (a - x)) + ((b - y) * (b - y)));
+				var _offset = {x: Math.abs(a - x)/2 + smallerValue(a, x), y: Math.abs(b - y)/2 + smallerValue(b, y)};
+				var _rotation = Math.atan((b - y)/(a - x));
+				var _geometry = new THREE.CylinderGeometry(2, 2, _length, 20);
+				var _material = new THREE.MeshBasicMaterial({color: 0xffae00});
+				cylinder = new THREE.Mesh(_geometry, _material);
+				cylinder.rotation.x = Math.PI/2;
+				cylinder.rotation.z = _rotation + Math.PI/2;
+				cylinder.position.x = _offset.x;
+				cylinder.position.z = _offset.y;
+				return cylinder;
+			}
+
+			function smallerValue(x, y){
+				if(x < y){
+					return x;
+				}else{
+					return y;
+				}
+			}
+
+			function getLength(x, y, a, b){
+				return Math.sqrt(((x - a)*(x - a)) + ((y - b)*(y - b)));
+			}
+/*			var scene = new THREE.Scene();;
+			var camera = new THREE.PerspectiveCamera( 65, window.innerWidth / window.innerHeight, 0.1, 1000 );
+			var renderer = new THREE.WebGLRenderer();
+			var controls = new THREE.OrbitControls(camera, document, renderer.domElement);
+			var windowResize = new THREEx.WindowResize(renderer, camera)
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			document.body.appendChild(renderer.domElement);
+			renderer.shadowMapEnabled = true;
+			var geometry = new THREE.PlaneGeometry(50,50,100,100);
+			var highlightGeometry = new THREE.Geometry();
+			var mainMaterial = new THREE.MeshLambertMaterial( { color: 0x507837, vertexColors: THREE.FaceColors, shading: THREE.FlatShading } );
+			var highlightMaterial = new THREE.MeshBasicMaterial({color: 0x0a0a0a, wireframe: true, transparent: true });
+			var material =[ new THREE.MeshLambertMaterial( { color: 0x808080, vertexColors: THREE.FaceColors, shading: THREE.FlatShading } )];
+			
+			var cube = new THREE.Mesh(geometry, mainMaterial);
+			var highlight = new THREE.Line(highlightGeometry,highlightMaterial);
+			highlight.rotation.x = -45;
+			cube.geometry.dynamic = true;
+			highlight.geometry.dynamic = true;
+			var intersects;
+			//cube.rotation.y = 0.3;
+			cube.rotation.x = -45;
+			cube.castShadow = true;
+			cube.receiveShadow = true;
+			scene.add(cube);		
+
+			var mainLight = 0.8;
+			var otherLights = 0.15;
+			var light = new THREE.AmbientLight( 0x222222 ); // soft white light
+			scene.add( light );
+			var light = new THREE.PointLight(0xffffff,mainLight,4500);
+			light.position.set(500,800,500);
+			scene.add(light);
+/*			var light = new THREE.PointLight(0xffffff,otherLights,4500);
+			light.position.set(0,500,500);
+			scene.add(light);
+			var light = new THREE.PointLight(0xffffff,otherLights,4500);
+			light.position.set(-500,500,500);
+			scene.add(light);
+			var light = new THREE.PointLight(0xffffff,otherLights,4500);
+			light.position.set(-500,500,0);
+			scene.add(light);
+			var light = new THREE.PointLight(0xffffff,otherLights,4500);
+			light.position.set(-500,500,-500);
+			scene.add(light);
+			var light = new THREE.PointLight(0xffffff,otherLights,4500);
+			light.position.set(0,500,-500);
+			scene.add(light);
+			var light = new THREE.PointLight(0xffffff,otherLights,4500);
+			light.position.set(500,100,-500);
+			scene.add(light);
+			var light = new THREE.PointLight(0xffffff,otherLights,4500);
+			light.position.set(500,100,0);
+			scene.add(light);
+
+			//window.addEventListener( 'mousemove', onMouseMove, false );
+			window.addEventListener( 'click', onMouseClick, false );
+
+			function onMouseClick(e){
+				var projector = new THREE.Projector();
+				var mouseVector = new THREE.Vector3();
+				mouseVector.x = 2 * (e.clientX / window.innerWidth) - 1;
+				mouseVector.y = 1 - 2 * ( e.clientY / window.innerHeight );
+				var raycaster = projector.pickingRay( mouseVector.clone(), camera );
+				intersects = raycaster.intersectObjects( scene.children );
+				if(intersects[0]){
+					intersects[0].object.geometry.vertices[intersects[0].face.a].z += 0.1;
+					intersects[0].object.geometry.vertices[intersects[0].face.b].z += 0.1;
+					intersects[0].object.geometry.vertices[intersects[0].face.c].z += 0.1;
+					intersects[0].object.geometry.computeFaceNormals();
+					intersects[0].object.geometry.computeVertexNormals();
+					intersects[0].object.geometry.verticesNeedUpdate = true;
+					intersects[0].object.geometry.normalsNeedUpdate = true;
+				}
+			}*/
+/*
+			function onMouseMove(e){
+				var projector = new THREE.Projector();
+				var mouseVector = new THREE.Vector3();
+				mouseVector.x = 2 * (e.clientX / window.innerWidth) - 1;
+				mouseVector.y = 1 - 2 * ( e.clientY / window.innerHeight );
+				scene.remove(highlight);
+				var raycaster = projector.pickingRay( mouseVector.clone(), camera );
+				intersects = raycaster.intersectObjects( scene.children );
+				if(intersects[0]){
+					var sharedVertex = intersects[0].face.c;
+					for(var i = 0; i < intersects[0].object.geometry.faces.length; i++){
+						if(intersects[0].object.geometry.faces[i].c == sharedVertex){
+							highlight.geometry.faces.push(intersects[0].object.geometry.faces[i].clone());
+						}
+					}
+					highlight.geometry.faces.push(intersects[0].face.clone());
+					highlightGeometry.elementsNeedUpdate = true;
+					//highlight = new THREE.Line(highlightGeometry,highlightMaterial);
+					//highlight.rotation.x = -45;
+					highlight.position.z = 0.1;
+					scene.add(highlight);
+					renderer.render(scene, camera);
+				}
+			}*/
+		</script> 
+	</body>
+</html>
