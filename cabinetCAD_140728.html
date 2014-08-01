@@ -11,6 +11,7 @@
 		<script src="js/simplecabinet.js"></script>
 		<script src="js/betterbounding.js"></script>
 		<script src="js/jquery-2.1.1.min.js"></script>
+		<script src="js/kitchenwalls.js"></script>
 		<script>
 			//Global Variables
 			var scene, camera, renderer, controls, windowResize, intersects;
@@ -24,13 +25,14 @@
 			var del = false;
 			var _a = false;
 			var drawing = false;
+			var kitchenwalls = new THREE.KitchenWalls();
 			var walls = new THREE.Object3D(), wallsShape = [], wallsShapeHighlight = new THREE.Object3D();
 			var selected = {selected: false, index: null};
 			var container = [];
 			var cabinets = new THREE.Object3D();
 			var floor = new THREE.Mesh();
 			var arrow = new THREE.Mesh();
-			var circle = new THREE.Mesh( new THREE.CylinderGeometry(3,3,1,20,1), new THREE.MeshBasicMaterial({color: 0xff0000}));
+			var circle = new THREE.Mesh( new THREE.CylinderGeometry(3,3,1,20,1), new THREE.MeshBasicMaterial({color: 0xCF2257}));
 			//circle.rotation.x = Math.PI / 2;
 			circle.position.set(0,1,0);
 			//circle.visible = false;
@@ -82,6 +84,38 @@
 				visible: true,
 				opacity: 1.0,
 				transparent: true,
+			});
+			darkBlue = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0x435772),
+				shading: THREE.FlatShading,
+				side: THREE.DoubleSide,
+				visible: true,
+			});
+			lightBlue = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0x2DA4A8),
+				shading: THREE.FlatShading,
+				side: THREE.DoubleSide,
+				visible: true,
+			});
+			lightOrange = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0xFEAA3A),
+				shading: THREE.FlatShading,
+				side: THREE.DoubleSide,
+				visible: true,
+				//opacity: 1.0,
+				//transparent: true,
+			});
+			darkOrange = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0xFD6041),
+				shading: THREE.FlatShading,
+				side: THREE.DoubleSide,
+				visible: true,
+			});
+			red = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0xCF2257),
+				shading: THREE.FlatShading,
+				side: THREE.DoubleSide,
+				visible: true,
 			});
 			var highlight = new THREE.Mesh(highlightGeometry, highlightMat);
 
@@ -140,8 +174,8 @@
 				directionalLight.onlyShadow = true;
 				scene.add( directionalLight );
 				//FLOOR
-				var faceMat = new THREE.MeshLambertMaterial({color: 0xeeeeee,side: THREE.DoubleSide,shading: THREE.FlatShading});
-				var wireMat = new THREE.MeshBasicMaterial({color:0x999999,wireframe:true,transparent:true});
+				var faceMat = new THREE.MeshLambertMaterial({color: 0x435772,side: THREE.DoubleSide,shading: THREE.FlatShading});
+				var wireMat = new THREE.MeshBasicMaterial({color:0x2DA4A8,wireframe:true,transparent:true});
 				floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000, 10, 10),faceMat);
 				floor.name = "floor";
 				floor.receiveShadow = true;
@@ -162,6 +196,7 @@
 				//**** TEMP: add simple cabinet ****
 				testCabinet = new THREE.SimpleCabinet(0,0);
 				testCabinet2 = new THREE.SimpleCabinet(0,70);
+				scene.add(kitchenwalls.kitchenWall);
 				cabinets.add(testCabinet.cabinet);
 				cabinets.add(testCabinet2.cabinet);
 				scene.add(cabinets);
@@ -295,12 +330,20 @@
 						}
 						container[i].removeArrow();
 					}
-					if(click && !shift && !drawing){
+					if(click && !shift && !_a){
 						selected.selected = false;
 						container[selected.index].boundingBox.setUnselected();
 					}
 					if(_a){
-						setAxisPosition(new THREE.Vector3(0,0,0));
+						kitchenwalls.redraw();
+						console.log("redraw");
+						if(click && !shift){
+							kitchenwalls.addPoint(circle.position.x, circle.position.z);
+						}
+						if(del){
+							kitchenwalls.deletePoint();
+						}
+						/*setAxisPosition(new THREE.Vector3(0,0,0));
 						var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
 						var projector = new THREE.Projector();
 						projector.unprojectVector( vector, camera );
@@ -352,7 +395,7 @@
 								wallsShapeHighlight.remove(wallsShapeHighlight.children[wallsShapeHighlight.children.length - 1]);
 								del = false;
 							}
-						}
+						}*/
 					}
 					click = false;
 					arrow.visible = false;
@@ -528,14 +571,14 @@
 				
 			}
 
-			function cylinderAsLine(x, y, a, b){
-				console.log(x + " , " + y + " , " + a + " , " + b)
+			function cylinderAsLine(x, y, a, b, colour){
+				//console.log(x + " , " + y + " , " + a + " , " + b)
 				var cylinder;
 				var _length = Math.sqrt(((a - x) * (a - x)) + ((b - y) * (b - y)));
 				var _offset = {x: Math.abs(a - x)/2 + smallerValue(a, x), y: Math.abs(b - y)/2 + smallerValue(b, y)};
 				var _rotation = Math.atan((b - y)/(a - x));
 				var _geometry = new THREE.CylinderGeometry(2, 2, _length, 20);
-				var _material = new THREE.MeshBasicMaterial({color: 0xffae00});
+				var _material = new THREE.MeshBasicMaterial({color: colour});
 				cylinder = new THREE.Mesh(_geometry, _material);
 				cylinder.rotation.x = Math.PI/2;
 				cylinder.rotation.z = _rotation + Math.PI/2;
