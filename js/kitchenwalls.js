@@ -7,6 +7,8 @@ THREE.KitchenWalls = function(){
 	this.layingOut = true;
 	this.extruding = false;
 	this.editMode = false;
+	this.highlightedFace = null;
+	this.selectedFace = null;
 	this.complete = false;
 	this.outlineColour = 0x2da4a8;
 
@@ -76,6 +78,8 @@ THREE.KitchenWalls = function(){
 		this.layingOut = true;
 		this.extruding = false;
 		this.editMode = false;
+		this.highlightedFace = null;
+		this.selectedFace = null;
 		this.complete = false;
 		this.redraw();
 	};
@@ -171,7 +175,11 @@ THREE.KitchenWalls = function(){
 		yArray.sort(function(a,b){return a - b});
 		this.handle.position.x = (xArray[xArray.length - 1] + xArray[0])/2;
 		this.handle.position.z = (yArray[yArray.length - 1] + yArray[0])/2;
-		this.handle.position.y = this.height + 25;
+		if(this.height > 0){
+			this.handle.position.y = this.height + 25;
+		}else{
+			this.handle.position.y = 25;
+		}
 		setAxisPosition(new THREE.Vector3(this.handle.position.x,0,this.handle.position.z));
 	}
 

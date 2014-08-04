@@ -24,6 +24,7 @@
 			var shift = false;
 			var del = false;
 			var _a = false;
+			var _z = false;
 			var drawing = false;
 			
 			var walls = new THREE.Object3D(), wallsShape = [], wallsShapeHighlight = new THREE.Object3D();
@@ -56,6 +57,7 @@
 				visible: true,
 				opacity: 1.0,
 				transparent: true,
+				vertexColors: THREE.FaceColors
 			});
 			panelMatCream = new THREE.MeshLambertMaterial({
 				color: new THREE.Color(0xfff5e0),
@@ -354,6 +356,20 @@
 							kitchenwalls.deletePoint();
 						}
 						kitchenwalls.redraw();
+						if(_z){
+							kitchenwalls.extruding = false;
+							kitchenwalls.editMode = true;
+							checkIntersect(kitchenwalls.kitchenWall.children[kitchenwalls.kitchenWall.children.length - 1]);
+							if(intersects[0]){
+								var sharedVertex = intersects[0].face.c;
+								for(var i = 0; i < intersects[0].object.geometry.faces.length; i++){
+									if(intersects[0].object.geometry.faces[i].c == sharedVertex){
+										intersects[0].object.geometry.faces[i].color.setHex(0xfd6041);
+									}
+								}
+								intersects[0].face.color.setHex(0xfd6041);
+							}
+						}
 						/*setAxisPosition(new THREE.Vector3(0,0,0));
 						var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
 						var projector = new THREE.Projector();
