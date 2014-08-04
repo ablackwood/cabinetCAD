@@ -25,7 +25,7 @@
 			var del = false;
 			var _a = false;
 			var drawing = false;
-			var kitchenwalls = new THREE.KitchenWalls();
+			
 			var walls = new THREE.Object3D(), wallsShape = [], wallsShapeHighlight = new THREE.Object3D();
 			var selected = {selected: false, index: null};
 			var container = [];
@@ -35,7 +35,7 @@
 			var circle = new THREE.Mesh( new THREE.CylinderGeometry(3,3,1,20,1), new THREE.MeshBasicMaterial({color: 0xCF2257}));
 			//circle.rotation.x = Math.PI / 2;
 			circle.position.set(0,1,0);
-			//circle.visible = false;
+			circle.visible = false;
 			
 			var highlightGeometry = new THREE.Geometry();
 			//var projector = new THREE.Projector();
@@ -118,6 +118,7 @@
 				visible: true,
 			});
 			var highlight = new THREE.Mesh(highlightGeometry, highlightMat);
+			var kitchenwalls = new THREE.KitchenWalls();
 
 			//Run program
 			init();
@@ -194,17 +195,17 @@
 				scene.add(skyBox);
 
 				//**** TEMP: add simple cabinet ****
-				testCabinet = new THREE.SimpleCabinet(0,0);
-				testCabinet2 = new THREE.SimpleCabinet(0,70);
+				//testCabinet = new THREE.SimpleCabinet(0,0);
+				//testCabinet2 = new THREE.SimpleCabinet(0,70);
 				scene.add(kitchenwalls.kitchenWall);
-				cabinets.add(testCabinet.cabinet);
-				cabinets.add(testCabinet2.cabinet);
-				scene.add(cabinets);
-				scene.add(testCabinet.outlineMesh);
+				//cabinets.add(testCabinet.cabinet);
+				//cabinets.add(testCabinet2.cabinet);
+				//scene.add(cabinets);
+				//scene.add(testCabinet.outlineMesh);
 				scene.add(circle);
 				scene.add(wallsShapeHighlight);
 				scene.add(walls);
-				createArrow();
+				//createArrow();
 				initPlanes();
 
 				//LISTENERS
@@ -223,7 +224,7 @@
 
 			function update()
 			{
-				checkIntersect( cabinets.children );
+				/*checkIntersect( cabinets.children );
 
 				if(intersects[0] && !selected.selected){
 					for(var i = 0; i < container.length; i++){
@@ -333,16 +334,26 @@
 					if(click && !shift && !_a){
 						selected.selected = false;
 						container[selected.index].boundingBox.setUnselected();
-					}
+					}*/
 					if(_a){
-						kitchenwalls.redraw();
-						console.log("redraw");
+						circle.visible = true;
+						
+						//console.log("redraw");
 						if(click && !shift){
-							kitchenwalls.addPoint(circle.position.x, circle.position.z);
+							if(kitchenwalls.layingOut){
+								kitchenwalls.addPoint(circle.position.x, circle.position.z);
+							}
+							if(kitchenwalls.extruding){
+								checkIntersect([YZplane]);
+								if(intersects[0]){
+									kitchenwalls.height = intersects[0].point.y;
+								}
+							}
 						}
 						if(del){
 							kitchenwalls.deletePoint();
 						}
+						kitchenwalls.redraw();
 						/*setAxisPosition(new THREE.Vector3(0,0,0));
 						var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
 						var projector = new THREE.Projector();
@@ -397,9 +408,9 @@
 							}
 						}*/
 					}
-					click = false;
+					//click = false;
 					arrow.visible = false;
-				}				
+				//}				
 
 				
 				//process click
@@ -414,12 +425,22 @@
 			}
 
 			function checkIntersect(objects){
+				if ( objects instanceof Array === false ) objects = [ objects ];
+				var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
+				var projector = new THREE.Projector();
+				projector.unprojectVector( vector, camera );				
+				var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+				intersects = raycaster.intersectObjects(objects);
+/*
 				var projector = new THREE.Projector();
 				var mouseVector = new THREE.Vector3();
 				mouseVector.x = mouse.x;
 				mouseVector.y = mouse.y;
 				var raycaster = projector.pickingRay( mouseVector.clone(), camera );
-				intersects = raycaster.intersectObjects( objects, true );
+				intersects = raycaster.intersectObjects( objects, true );*/
+				if(intersects[0]){
+					console.log(intersects[0].object.name);
+				}
 			}
 
 			function onMouseDown(e){
@@ -427,6 +448,7 @@
 				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 				click = true;
+				console.log("click");
 			}
 
 			function onMouseUp(e){
@@ -464,7 +486,7 @@
 				YZplane.position = position;
 				XZplane.position = position;
 			}
-
+/*
 			function createArrow(){
 				var points = [];
 				points.push(new THREE.Vector3(0,0,7));
@@ -479,7 +501,7 @@
 				points.push(new THREE.Vector3(-2,0,3));
 				points.push(new THREE.Vector3(0,0,7));
 				var geometry = new THREE.LatheGeometry(points, 24);
-				arrow = new THREE.Mesh(geometry, panelMatBlack);
+				arrow = new THREE.Mesh(geometry, darkOrange);
 				arrow.scale.set(3,3,3);
 				arrow.visible = false;
 				arrow.name = "arrow";
@@ -538,7 +560,7 @@
 						arrow.visible = true;
 					}
 				}
-			}
+			}*/
 
 			function roundToNearest(numX, numY, nearest, threshold){
 				var value = {x: numX, z: numY, near: 0};
@@ -547,9 +569,9 @@
 				var upY = Math.ceil(numY/nearest)*nearest;
 				var downY = Math.floor(numY/nearest)*nearest;
 				var nearArray = [{x: upX, z: upY, near: getLength(numX, numY, upX, upY)}, {x: upX, z: downY, near: getLength(numX, numY, upX, downY)}, {x: downX, z: downY, near: getLength(numX, numY, downX, downY)}, {x: downX, z: upY, near: getLength(numX, numY, downX, upY)}];
-				if(wallsShape.length > 0){
-					for(var i = 0; i < wallsShape.length; i++){
-						nearArray.push({x: wallsShape[i].x, z: wallsShape[i].y, near: getLength(numX, numY, wallsShape[i].x, wallsShape[i].y)});
+				if(kitchenwalls.plan.length > 0){
+					for(var i = 0; i < kitchenwalls.plan.length; i++){
+						nearArray.push({x: kitchenwalls.plan[i].x, z: kitchenwalls.plan[i].y, near: getLength(numX, numY, kitchenwalls.plan[i].x, kitchenwalls.plan[i].y)});
 					}
 				}
 				nearArray.sort(
@@ -580,6 +602,7 @@
 				var _geometry = new THREE.CylinderGeometry(2, 2, _length, 20);
 				var _material = new THREE.MeshBasicMaterial({color: colour});
 				cylinder = new THREE.Mesh(_geometry, _material);
+				cylinder.name = "boundary";
 				cylinder.rotation.x = Math.PI/2;
 				cylinder.rotation.z = _rotation + Math.PI/2;
 				cylinder.position.x = _offset.x;

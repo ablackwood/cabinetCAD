@@ -28,17 +28,17 @@ THREE.BetterBounding = function(object, scene, translation, rotation){
 	};
 
 	this.setSelected = function(){
-		mesh1.material.color.setHex(0x00ae00);
-		mesh2.material.color.setHex(0x00ae00);
-		mesh3.material.color.setHex(0x00ae00);
-		mesh4.material.color.setHex(0x00ae00);
+		mesh1.material.color.setHex(0xfeaa3a);
+		mesh2.material.color.setHex(0xfeaa3a);
+		mesh3.material.color.setHex(0xfeaa3a);
+		mesh4.material.color.setHex(0xfeaa3a);
 	};
 
 	this.setUnselected = function(){
-		mesh1.material.color.setHex(0xffae00);
-		mesh2.material.color.setHex(0xffae00);
-		mesh3.material.color.setHex(0xffae00);
-		mesh4.material.color.setHex(0xffae00);
+		mesh1.material.color.setHex(0x2da4a8);
+		mesh2.material.color.setHex(0x2da4a8);
+		mesh3.material.color.setHex(0x2da4a8);
+		mesh4.material.color.setHex(0x2da4a8);
 	};
 
 	function createMesh(geom){

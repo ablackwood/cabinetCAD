@@ -16,7 +16,9 @@ THREE.KitchenWalls = function(){
 			this.plan.pop();
 			this.layingOut = false;
 			this.extruding = true;
+			click = false;
 			this.outlineColour = 0xfeaa3a;
+			circle.visible = false;
 		}
 		this.redraw();
 	};
@@ -47,19 +49,23 @@ THREE.KitchenWalls = function(){
 			circle.position.set(mouseXY.x, 1, mouseXY.z);
 			circle.visible = true;
 			this.drawWallOutline(mouseXY.x, mouseXY.z);
+			click = false;
 		}
 		if(this.extruding){
 			this.drawWallOutline();
 			this.drawFootprint();
 			if(this.height > 0){
-				drawWall();
+				this.drawWall();
 			}
+			this.positionHandle();
+			this.handle.visible = true;
+			this.kitchenWall.add(this.handle);
 		}
 		if(this.editMode){
-			drawWall();
+			this.drawWall();
 		}
 		if(this.complete){
-			drawWall();
+			this.drawWall();
 		}
 	};
 
@@ -96,12 +102,13 @@ THREE.KitchenWalls = function(){
 		var extrudeShape = new THREE.Shape(this.plan);
 		var shapeGeom = new THREE.ShapeGeometry(extrudeShape);
 		var footprint = new THREE.Mesh(shapeGeom, darkOrange);
+		footprint.name = "footprint";
 		footprint.rotation.x = Math.PI/2;
 		footprint.position.y = 1;
 		this.kitchenWall.add(footprint);
 	}
 
-	function drawWall(){
+	this.drawWall = function(){
 		var extrudeShape = new THREE.Shape(this.plan);
 		var extrusionSettings = {
 			curveSegments: 1, 
@@ -125,5 +132,54 @@ THREE.KitchenWalls = function(){
 		var intersectPlane = raycaster.intersectObject(XZplane);
 		var nearest = roundToNearest(intersectPlane[0].point.x, intersectPlane[0].point.z, 100, 10);
 		return nearest;
+	}
+
+	this.createHandle = function(){
+		var points = [];
+		points.push(new THREE.Vector3(0,0,7));
+		points.push(new THREE.Vector3(2,0,3));
+		points.push(new THREE.Vector3(1,0,3));
+		points.push(new THREE.Vector3(1,0,-3));
+		points.push(new THREE.Vector3(2,0,-3));
+		points.push(new THREE.Vector3(0,0,-7));
+		points.push(new THREE.Vector3(-2,0,-3));
+		points.push(new THREE.Vector3(-1,0,-3));
+		points.push(new THREE.Vector3(-1,0,3));
+		points.push(new THREE.Vector3(-2,0,3));
+		points.push(new THREE.Vector3(0,0,7));
+		var geometry = new THREE.LatheGeometry(points, 24);
+		this.handle = new THREE.Mesh(geometry, red);
+		this.handle.material.color.setHex(0x3b3b3b);
+		this.handle.scale.set(3,3,3);
+		this.handle.rotation.x = Math.PI/2;
+		this.handle.visible = false;
+		this.handle.name = "extrude handle";
+		this.kitchenWall.add(this.handle);
+	}
+
+	this.handle;
+	this.createHandle();
+
+	this.positionHandle = function(){
+		var xArray = [];
+		var yArray = [];
+		for(var i = 0; i < this.plan.length; i++){
+			xArray.push(this.plan[i].x);
+			yArray.push(this.plan[i].y);
+		}
+		xArray.sort(function(a,b){return a - b});
+		yArray.sort(function(a,b){return a - b});
+		this.handle.position.x = (xArray[xArray.length - 1] + xArray[0])/2;
+		this.handle.position.z = (yArray[yArray.length - 1] + yArray[0])/2;
+		this.handle.position.y = this.height + 25;
+		setAxisPosition(new THREE.Vector3(this.handle.position.x,0,this.handle.position.z));
+	}
+
+	this.highlightHandle = function(){
+		this.handle.material.color.setHex(0xcf2257);
+	}
+
+	this.unhighlightHandle = function(){
+		this.handle.material.color.setHex(0x3b3b3b);
 	}
 }
