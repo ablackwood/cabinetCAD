@@ -43,7 +43,7 @@ THREE.KitchenWalls = function(){
 
 	this.redraw = function(){
 		var length = this.kitchenWall.children.length;
-		for(var i = 0; i < length; i++){
+		for(var i = length - 1; i > -1; i--){
 			this.kitchenWall.remove(this.kitchenWall.children[i]);
 		}
 		if(this.layingOut){
@@ -120,9 +120,10 @@ THREE.KitchenWalls = function(){
 			bevelEnabled: false, 
 		};
 		var extrusionGeom = new THREE.ExtrudeGeometry(extrudeShape, extrusionSettings);
+		extrusionGeom.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI/2));
+		extrusionGeom.applyMatrix(new THREE.Matrix4().makeTranslation(0, this.height, 0));
+		extrusionGeom.verticesNeedUpdate = true;
 		var extrusion = new THREE.Mesh(extrusionGeom, panelMatWhite);
-		extrusion.rotation.x = Math.PI/2;
-		extrusion.translateZ(-this.height);
 		this.kitchenWall.add(extrusion);
 	}
 

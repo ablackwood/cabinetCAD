@@ -1,7 +1,11 @@
 <html>
 	<head>
 		<title>cabinetCAD</title>
-		<style>canvas { width: 100%; height: 100% }</style>
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			canvas { width: 100%; height: 100% }
+			body{ margin: 0px; overflow: hidden; }
+		</style>
 	</head>
 	<body>
 		<script src="js/three.js"></script>
@@ -130,7 +134,7 @@
 				//SCENE
 				scene = new THREE.Scene();
 				//CAMERA
-				camera = new THREE.PerspectiveCamera(65, window.innerWidth/window.innerHeight, 0.1, 10000);
+				camera = new THREE.PerspectiveCamera(65, (window.innerWidth)/(window.innerHeight), 0.1, 10000);
 				scene.add(camera);
 				camera.position.set(0,250,950);
 				camera.lookAt(scene.position);
@@ -182,7 +186,6 @@
 				floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000, 10, 10),faceMat);
 				floor.name = "floor";
 				floor.receiveShadow = true;
-				//floor.position.y = -2;
 				floor.rotation.x = Math.PI / 2;				
 				var floorWire = floor.clone();
 				floorWire.name = "floor";
@@ -351,6 +354,7 @@
 									kitchenwalls.height = intersects[0].point.y;
 								}
 							}
+
 						}
 						if(del){
 							kitchenwalls.deletePoint();
@@ -361,13 +365,21 @@
 							kitchenwalls.editMode = true;
 							checkIntersect(kitchenwalls.kitchenWall.children[kitchenwalls.kitchenWall.children.length - 1]);
 							if(intersects[0]){
-								var sharedVertex = intersects[0].face.c;
-								for(var i = 0; i < intersects[0].object.geometry.faces.length; i++){
-									if(intersects[0].object.geometry.faces[i].c == sharedVertex){
-										intersects[0].object.geometry.faces[i].color.setHex(0xfd6041);
+								var sharedVertexA = intersects[0].face.a;
+								var sharedVertexB = intersects[0].face.b;
+								var sharedVertexC = intersects[0].face.c;
+								var normal = intersects[0].face.normal;
+								if(normal.y != 1){
+									for(var i = 0; i < intersects[0].object.geometry.faces.length; i++){
+										if(intersects[0].object.geometry.faces[i].normal.x == normal.x && intersects[0].object.geometry.faces[i].normal.y == normal.y && intersects[0].object.geometry.faces[i].normal.z == normal.z){
+											if(intersects[0].object.geometry.faces[i].a == sharedVertexA || intersects[0].object.geometry.faces[i].b == sharedVertexB || intersects[0].object.geometry.faces[i].c == sharedVertexC){
+												intersects[0].object.geometry.faces[i].color.setHex(0xfd6041);
+											}
+										}
 									}
+									intersects[0].face.color.setHex(0xfd6041);
+									intersects[0].object.geometry.colorsNeedUpdate = true;
 								}
-								intersects[0].face.color.setHex(0xfd6041);
 							}
 						}
 						/*setAxisPosition(new THREE.Vector3(0,0,0));
@@ -446,12 +458,10 @@
 				var projector = new THREE.Projector();
 				projector.unprojectVector( vector, camera );				
 				var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
-				intersects = raycaster.intersectObjects(objects);
-/*
-				var projector = new THREE.Projector();
-				var mouseVector = new THREE.Vector3();
-				mouseVector.x = mouse.x;
-				mouseVector.y = mouse.y;
+				intersects = raycaster.intersectObjects(objects, true);
+
+/*				var projector = new THREE.Projector();
+				var mouseVector = new THREE.Vector3(mouse.x, mouse.y, 1);
 				var raycaster = projector.pickingRay( mouseVector.clone(), camera );
 				intersects = raycaster.intersectObjects( objects, true );*/
 				if(intersects[0]){
@@ -637,6 +647,7 @@
 			function getLength(x, y, a, b){
 				return Math.sqrt(((x - a)*(x - a)) + ((y - b)*(y - b)));
 			}
+
 /*			var scene = new THREE.Scene();;
 			var camera = new THREE.PerspectiveCamera( 65, window.innerWidth / window.innerHeight, 0.1, 1000 );
 			var renderer = new THREE.WebGLRenderer();
