@@ -370,15 +370,28 @@
 								var sharedVertexC = intersects[0].face.c;
 								var normal = intersects[0].face.normal;
 								if(normal.y != 1){
+									var faceArray = [];
 									for(var i = 0; i < intersects[0].object.geometry.faces.length; i++){
 										if(intersects[0].object.geometry.faces[i].normal.x == normal.x && intersects[0].object.geometry.faces[i].normal.y == normal.y && intersects[0].object.geometry.faces[i].normal.z == normal.z){
 											if(intersects[0].object.geometry.faces[i].a == sharedVertexA || intersects[0].object.geometry.faces[i].b == sharedVertexB || intersects[0].object.geometry.faces[i].c == sharedVertexC){
-												intersects[0].object.geometry.faces[i].color.setHex(0xfd6041);
+												//intersects[0].object.geometry.faces[i].color.setHex(0xfd6041);
+												faceArray.push(intersects[0].object.geometry.faces[i].a);
+												faceArray.push(intersects[0].object.geometry.faces[i].b);
+												faceArray.push(intersects[0].object.geometry.faces[i].c);
 											}
 										}
 									}
-									intersects[0].face.color.setHex(0xfd6041);
-									intersects[0].object.geometry.colorsNeedUpdate = true;
+									//intersects[0].face.color.setHex(0xfd6041);
+									//intersects[0].object.geometry.colorsNeedUpdate = true;
+									faceArray.push(intersects[0].face.a);
+									faceArray.push(intersects[0].face.b);
+									faceArray.push(intersects[0].face.c);
+									var sortedVertices = sortVertices(intersects[0].object.geometry, faceArray);
+
+									kitchenwalls.kitchenWall.add(cylinderAsLine3D(sortedVertices.v1.x, sortedVertices.v1.y, sortedVertices.v1.z, sortedVertices.v2.x, sortedVertices.v2.y, sortedVertices.v2.z, 0xfeaa3a));
+									kitchenwalls.kitchenWall.add(cylinderAsLine3D(sortedVertices.v2.x, sortedVertices.v2.y, sortedVertices.v2.z, sortedVertices.v3.x, sortedVertices.v3.y, sortedVertices.v3.z, 0xfeaa3a));
+									kitchenwalls.kitchenWall.add(cylinderAsLine3D(sortedVertices.v3.x, sortedVertices.v3.y, sortedVertices.v3.z, sortedVertices.v4.x, sortedVertices.v4.y, sortedVertices.v4.z, 0xfeaa3a));
+									kitchenwalls.kitchenWall.add(cylinderAsLine3D(sortedVertices.v4.x, sortedVertices.v4.y, sortedVertices.v4.z, sortedVertices.v1.x, sortedVertices.v1.y, sortedVertices.v1.z, 0xfeaa3a));
 								}
 							}
 						}
@@ -636,6 +649,26 @@
 				return cylinder;
 			}
 
+			function cylinderAsLine3D(x, y, z, a, b, c, colour){
+				var cylinder;
+				var _length = Math.sqrt(squared(Math.sqrt(squared(a - x) + squared(b - y))) + squared(c - z));
+				var _offset = {x: Math.abs(a - x)/2 + smallerValue(a, x), y: Math.abs(b - y)/2 + smallerValue(b, y), z: Math.abs(c - z)/2 + smallerValue(c, z)};
+				var _vector = new THREE.Vector3().subVectors(new THREE.Vector3(x, y, z), new THREE.Vector3(a, b, c));
+				_vector.normalize();
+				var _quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), _vector);
+				var _geometry = new THREE.CylinderGeometry(2, 2, _length, 20);
+				_geometry.applyMatrix(new THREE.Matrix4().makeRotationFromQuaternion(_quaternion));
+				_geometry.applyMatrix(new THREE.Matrix4().makeTranslation(_offset.x, _offset.y, _offset.z));
+				_geometry.verticesNeedUpdate = true;
+				var _material = new THREE.MeshBasicMaterial({color: colour});
+				cylinder = new THREE.Mesh(_geometry, _material);
+				return cylinder;
+			}
+
+			function squared(x){
+				return (x * x);
+			}
+
 			function smallerValue(x, y){
 				if(x < y){
 					return x;
@@ -648,6 +681,86 @@
 				return Math.sqrt(((x - a)*(x - a)) + ((y - b)*(y - b)));
 			}
 
+			function sortVertices(geometry, verticesIndexes){
+				var v1, v2, v3, v4;
+				var xArray = [], yArray = [], zArray = [];
+				var highY = [], lowY = [], highXhighY = [], lowXhighY = [], highXlowY = [], lowXlowY = [], highZhighY = [], lowZhighY = [], highZlowY = [], lowZlowY = [];
+
+				for(var j = 0; j < verticesIndexes.length; j++){
+					xArray.push(geometry.vertices[verticesIndexes[j]].x);
+					yArray.push(geometry.vertices[verticesIndexes[j]].y);
+					zArray.push(geometry.vertices[verticesIndexes[j]].z);
+				}	
+
+				xArray.sort(function(a,b){return a - b});
+				yArray.sort(function(a,b){return a - b});
+				zArray.sort(function(a,b){return a - b});
+
+				for(var i = 0; i < verticesIndexes.length; i++){
+					if(geometry.vertices[verticesIndexes[i]].y > yArray[0]){
+						highY.push(geometry.vertices[verticesIndexes[i]]);
+					}else{
+						lowY.push(geometry.vertices[verticesIndexes[i]]);
+					}
+				}
+
+				if(xArray[0] != xArray[xArray.length - 1]){
+					for(var k = 0; k < highY.length; k++){
+						if(highY[k].x > xArray[0]){
+							highXhighY.push(highY[k]);
+						}else{
+							lowXhighY.push(highY[k]);
+						}
+					}
+					for(var k = 0; k < lowY.length; k++){
+						if(lowY[k].x > xArray[0]){
+							highXlowY.push(lowY[k]);
+						}else{
+							lowXlowY.push(lowY[k]);
+						}
+					}
+					v1 = lowXlowY[0];
+					v2 = lowXhighY[0];
+					v3 = highXhighY[0];
+					v4 = highXlowY[0];
+				}else{
+					for(var k = 0; k < highY.length; k++){
+						if(highY[k].z > zArray[0]){
+							highZhighY.push(highY[k]);
+						}else{
+							lowZhighY.push(highY[k]);
+						}
+					}
+					for(var k = 0; k < lowY.length; k++){
+						if(lowY[k].z > zArray[0]){
+							highZlowY.push(lowY[k]);
+						}else{
+							lowZlowY.push(lowY[k]);
+						}
+					}
+					v1 = lowZlowY[0];
+					v2 = lowZhighY[0];
+					v3 = highZhighY[0];
+					v4 = highZlowY[0];
+				}
+
+				return {v1: v1, v2: v2, v3: v3, v4: v4};
+			}
+
+			function determineIfNormalSame(vector, p1, p2, p3){
+				var a, b, c;
+				a = new THREE.Vector3().subVectors(p2, p1);
+				b = new THREE.Vector3().subVectors(p3, p1);
+				a.cross(b);
+				a.normalize();
+				a.x = Math.round(a.x * 100000) / 100000;
+				a.y = Math.round(a.y * 100000) / 100000;
+				a.z = Math.round(a.z * 100000) / 100000;
+				vector.x = Math.round(vector.x * 100000) / 100000;
+				vector.y = Math.round(vector.y * 100000) / 100000;
+				vector.z = Math.round(vector.z * 100000) / 100000;
+				return a.equals(vector);
+			}
 /*			var scene = new THREE.Scene();;
 			var camera = new THREE.PerspectiveCamera( 65, window.innerWidth / window.innerHeight, 0.1, 1000 );
 			var renderer = new THREE.WebGLRenderer();
