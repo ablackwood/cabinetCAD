@@ -467,6 +467,7 @@ THREE.OrbitControls = function ( object, domElement, localElement ) {
 					_z = false;
 				}else{
 					_z = true;
+					hide("#extrude_text", "#edit_text");
 				}
 				break;
 		}
