@@ -23,7 +23,7 @@ THREE.SimpleCabinet = function( x, z ){
 		var newGeom = new THREE.BoxGeometry(x, z, y, 1, 1, 1);
 		newGeom.applyMatrix( new THREE.Matrix4().makeTranslation(locx, locz, locy));
 		//THREE.GeometryUtils.merge(this.cabinetGeom, newGeom);
-		var newMesh = new THREE.Mesh(newGeom, panelMatCream);
+		var newMesh = new THREE.Mesh(newGeom, panelMatBirch);
 		newMesh.name = this.cabinet.name;
 		var newEdge = new THREE.EdgesHelper(newMesh, 0x555555);
 		this.cabinet.add(newMesh);

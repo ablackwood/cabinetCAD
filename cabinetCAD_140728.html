@@ -1,7 +1,15 @@
 <html>
 	<head>
 		<title>cabinetCAD</title>
-		<style>canvas { width: 100%; height: 100% }</style>
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			canvas { width: 100%; height: 100% }
+			body{ margin: 0px; overflow: hidden; }
+			.cabinetCAD { margin: 25px; color: white; font-family: "Arial"; font-size: 28;}
+			.sidebar { margin: 50px; float: right; position: absolute; top: 0; width: 270px; background-color: #435772; border: #2DA4A8; border-radius: 25px;}
+			.sidebar_content {margin: 25px; color: white; font-family: "Arial"; font-size: 18;};
+
+		</style>
 	</head>
 	<body>
 		<script src="js/three.js"></script>
@@ -10,7 +18,10 @@
 		<script src="js/windowresize.js"></script>
 		<script src="js/simplecabinet.js"></script>
 		<script src="js/betterbounding.js"></script>
-		<script src="js/jquery-2.1.1.min.js"></script>
+		<script src="js/jquery-1.11.1.min.js"></script>
+		<script src="js/ThreeBSP.js"></script>
+		<script src="js/kitchenwalls.js"></script>
+		<script src="js/tapemeasure.js"></script>
 		<script>
 			//Global Variables
 			var scene, camera, renderer, controls, windowResize, intersects;
@@ -23,17 +34,19 @@
 			var shift = false;
 			var del = false;
 			var _a = false;
+			var _z = false;
 			var drawing = false;
+			
 			var walls = new THREE.Object3D(), wallsShape = [], wallsShapeHighlight = new THREE.Object3D();
 			var selected = {selected: false, index: null};
 			var container = [];
 			var cabinets = new THREE.Object3D();
 			var floor = new THREE.Mesh();
 			var arrow = new THREE.Mesh();
-			var circle = new THREE.Mesh( new THREE.CylinderGeometry(3,3,1,20,1), new THREE.MeshBasicMaterial({color: 0xff0000}));
+			var circle = new THREE.Mesh( new THREE.SphereGeometry(3,20,20), new THREE.MeshBasicMaterial({color: 0xCF2257}));
 			//circle.rotation.x = Math.PI / 2;
 			circle.position.set(0,1,0);
-			//circle.visible = false;
+			circle.visible = false;
 			
 			var highlightGeometry = new THREE.Geometry();
 			//var projector = new THREE.Projector();
@@ -52,8 +65,10 @@
 				color: new THREE.Color(0xebebeb),
 				shading: THREE.NoShading,
 				visible: true,
+				//wireframe: true,
 				opacity: 1.0,
 				transparent: true,
+				vertexColors: THREE.FaceColors
 			});
 			panelMatCream = new THREE.MeshLambertMaterial({
 				color: new THREE.Color(0xfff5e0),
@@ -83,7 +98,52 @@
 				opacity: 1.0,
 				transparent: true,
 			});
+			darkBlue = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0x435772),
+				shading: THREE.FlatShading,
+				side: THREE.DoubleSide,
+				visible: true,
+			});
+			lightBlue = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0x2DA4A8),
+				shading: THREE.FlatShading,
+				side: THREE.DoubleSide,
+				visible: true,
+			});
+			lightOrange = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0xFEAA3A),
+				shading: THREE.FlatShading,
+				side: THREE.DoubleSide,
+				visible: true,
+				//opacity: 1.0,
+				//transparent: true,
+			});
+			darkOrange = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0xFD6041),
+				shading: THREE.FlatShading,
+				side: THREE.DoubleSide,
+				visible: true,
+			});
+			red = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0xCF2257),
+				shading: THREE.FlatShading,
+				side: THREE.DoubleSide,
+				visible: true,
+			});
+			tapeRed = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0xFF0000),
+				shading: THREE.FlatShading,
+				side: THREE.DoubleSide,
+				visible: true,
+			});
+			tapeYellow = new THREE.MeshLambertMaterial({
+				color: new THREE.Color(0xFFFF00),
+				shading: THREE.FlatShading,
+				side: THREE.DoubleSide,
+				visible: true,
+			});
 			var highlight = new THREE.Mesh(highlightGeometry, highlightMat);
+			var kitchenwalls = new THREE.KitchenWalls();
 
 			//Run program
 			init();
@@ -93,7 +153,8 @@
 				//SCENE
 				scene = new THREE.Scene();
 				//CAMERA
-				camera = new THREE.PerspectiveCamera(65, window.innerWidth/window.innerHeight, 0.1, 10000);
+				camera = new THREE.PerspectiveCamera(65, (window.innerWidth)/(window.innerHeight), 0.1, 10000);
+				//camera = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, 1, 10000 );
 				scene.add(camera);
 				camera.position.set(0,250,950);
 				camera.lookAt(scene.position);
@@ -140,12 +201,11 @@
 				directionalLight.onlyShadow = true;
 				scene.add( directionalLight );
 				//FLOOR
-				var faceMat = new THREE.MeshLambertMaterial({color: 0xeeeeee,side: THREE.DoubleSide,shading: THREE.FlatShading});
-				var wireMat = new THREE.MeshBasicMaterial({color:0x999999,wireframe:true,transparent:true});
+				var faceMat = new THREE.MeshLambertMaterial({color: 0x435772,side: THREE.DoubleSide,shading: THREE.FlatShading});
+				var wireMat = new THREE.MeshBasicMaterial({color:0x2DA4A8,wireframe:true,transparent:true});
 				floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000, 10, 10),faceMat);
 				floor.name = "floor";
 				floor.receiveShadow = true;
-				//floor.position.y = -2;
 				floor.rotation.x = Math.PI / 2;				
 				var floorWire = floor.clone();
 				floorWire.name = "floor";
@@ -158,25 +218,52 @@
 				var skyBox = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
 				skyBox.name = "floor";
 				scene.add(skyBox);
+				MeasuringTape = new THREE.measuringTape();
+				scene.add(MeasuringTape.tape);
 
 				//**** TEMP: add simple cabinet ****
-				testCabinet = new THREE.SimpleCabinet(0,0);
-				testCabinet2 = new THREE.SimpleCabinet(0,70);
-				cabinets.add(testCabinet.cabinet);
-				cabinets.add(testCabinet2.cabinet);
-				scene.add(cabinets);
-				scene.add(testCabinet.outlineMesh);
+				//testCabinet = new THREE.SimpleCabinet(0,0);
+				//testCabinet2 = new THREE.SimpleCabinet(0,70);
+				scene.add(kitchenwalls.kitchenWall);
+				//cabinets.add(testCabinet.cabinet);
+				//cabinets.add(testCabinet2.cabinet);
+				//scene.add(cabinets);
+				//scene.add(testCabinet.outlineMesh);
 				scene.add(circle);
 				scene.add(wallsShapeHighlight);
 				scene.add(walls);
-				createArrow();
+				//createArrow();
 				initPlanes();
+				html();
 
 				//LISTENERS
 				document.addEventListener('mousedown', onMouseDown, false);
 				document.addEventListener('mouseup', onMouseUp, false);
 				document.addEventListener('mousemove', onMouseMove, false);
 
+			}
+
+			function html(){
+				sidebar = document.createElement( 'div' );
+				$(sidebar).addClass("sidebar");
+
+				document.body.appendChild( sidebar );
+
+				sidebar_title = document.createElement('div');
+				$(sidebar_title).addClass("cabinetCAD").appendTo($(sidebar)).html("<img src=\"img/icon.png\" style=\"float: left;\"><div>cabinetCAD</div>");
+
+				first_text = document.createElement('div');
+				$(first_text).addClass("sidebar_content").appendTo($(sidebar)).html("<p>Start by marking out the plan of your walls onto the grid. The mouse will move the red ball around. Click the mouse button to mark each corner.</p><p>If you mark a point by mistake just press DELETE to erase it.</p><p>The plan section will be complete when you click back on the first mark.</p><p>The marker will get snaped to the grid or at right angles to the previous marker.</p>").attr('id','first_text');
+
+				extrude_text = document.createElement('div');
+				$(extrude_text).addClass("sidebar_content").appendTo($(sidebar)).html("<p>To raise the height of the walls, click and drag the black arrow handle up and down</p><p>Click the button to finalise the height</p>").attr('id','extrude_text').hide();
+
+				edit_text = document.createElement('div');
+				$(edit_text).addClass("sidebar_content").appendTo($(sidebar)).html("<p>You can add doorways or areas with bulkheads.</p><p>Click on the face you want to edit. The measuring tape will show the offset distance from the edge of the face.</p><p>Click to mark the first point. Now the measuring tape will show the width of the opening.</p><p>Click to mark the width. Now the measuring tape will show the height of the opening.</p><p>Click to mark the height. Finally it will show the depth of the opening.</p><p>If you make a mistake just hit DELETE.</p>").attr('id','edit_text').hide();
+			}
+
+			function hide(name, newName){
+				$(name).slideUp("slow", function(){$(newName).slideDown("slow");});
 			}
 
 			function animate(){
@@ -188,7 +275,7 @@
 
 			function update()
 			{
-				checkIntersect( cabinets.children );
+				/*checkIntersect( cabinets.children );
 
 				if(intersects[0] && !selected.selected){
 					for(var i = 0; i < container.length; i++){
@@ -295,69 +382,125 @@
 						}
 						container[i].removeArrow();
 					}
-					if(click && !shift && !drawing){
+					if(click && !shift && !_a){
 						selected.selected = false;
 						container[selected.index].boundingBox.setUnselected();
-					}
+					}*/
 					if(_a){
-						setAxisPosition(new THREE.Vector3(0,0,0));
-						var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
-						var projector = new THREE.Projector();
-						projector.unprojectVector( vector, camera );
+						circle.visible = true;
 						
-						var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
-						var intersectPlane = raycaster.intersectObject(XZplane);
-						//console.log(intersectPlane[0].point.x + " , " + intersectPlane[0].point.y + " , " + intersectPlane[0].point.z);
-						if(!drawing){
-							drawing = true;
-							circle.position.set(intersectPlane[0].point.x, 1, intersectPlane[0].point.z);
-							circle.visible = true;
-						}else{
-							var nearest = roundToNearest(intersectPlane[0].point.x, intersectPlane[0].point.z, 100, 10);
-							circle.position.set(nearest.x, 1, nearest.z);
-							if(click && !shift){
-								wallsShape.push(new THREE.Vector2 (nearest.x, nearest.z));
-								if(wallsShape.length > 1){
-										if(wallsShape[0].x == wallsShape[wallsShape.length - 1].x && wallsShape[0].y == wallsShape[wallsShape.length - 1].y){
-										var extrudeShape = new THREE.Shape(wallsShape);
-										var extrusionSettings = {
-											curveSegments: 1, 
-											amount: 400, 
-											bevelEnabled: false, 
-										};
-										var extrusionGeom = new THREE.ExtrudeGeometry(extrudeShape, extrusionSettings);
-										var extrusion = new THREE.Mesh(extrusionGeom, panelMatWhite);
-										extrusion.rotation.x = Math.PI/2;
-										extrusion.translateZ(-400);
-										walls.add(extrusion);
-										//scene.remove(wallsShapeHighlight);
-										var length = wallsShape.length;
-										for(var i  = 0; i < length; i++){
-											wallsShape.pop();
-										}
+						//console.log("redraw");
+						if(click && !shift){
+							if(kitchenwalls.layingOut){
+								kitchenwalls.addPoint(circle.position.x, circle.position.z);
+								MeasuringTape.setLocation(new THREE.Vector3(circle.position.x, 0, circle.position.z));
+							}
+							if(kitchenwalls.extruding){
+								checkIntersect([YZplane]);
+								if(intersects[0]){
+									kitchenwalls.extrude(intersects[0].point.y);
+								}
+							}
+
+						}
+						if(del && !_z){
+							kitchenwalls.deletePoint();
+						}
+						kitchenwalls.redraw();
+						if(_z){
+							kitchenwalls.extruding = false;
+							kitchenwalls.editMode = true;
+							checkIntersect(kitchenwalls.kitchenWall.children[kitchenwalls.kitchenWall.children.length - 1]);
+							if(intersects[0]){
+								kitchenwalls.highlightedFace = intersects[0].object.name;
+							}else{
+								kitchenwalls.highlightedFace = null;
+							}
+							//kitchenwalls.highlightedFace = intersects[0];
+							if(click && !shift && intersects[0]){
+								if(kitchenwalls.selectedFace != intersects[0].object.name){
+									kitchenwalls.selectedFace = intersects[0].object.name;
+									click = false;
+								}else{
+									if(kitchenwalls.wallFaces[intersects[0].object.name].editStage < 4){
+										kitchenwalls.wallFaces[intersects[0].object.name].editStage++;
+										click = false;
 									}
 								}
-							}
-							if(wallsShape.length > 0){
-								var wallEdge = cylinderAsLine(nearest.x, nearest.z, wallsShape[wallsShape.length - 1].x, wallsShape[wallsShape.length - 1].y);
-								if(click){
-									wallsShapeHighlight.add(wallEdge);
+								/*if(kitchenwalls.selectedFace.face.normal != intersects[0].face.normal){
+								if(kitchenwalls.selectedFace.face.normal.x != intersects[0].face.normal.x || kitchenwalls.selectedFace.face.normal.y != intersects[0].face.normal.y || kitchenwalls.selectedFace.face.normal.z != intersects[0].face.normal.z){
+									kitchenwalls.selectedFace = intersects[0];
+									click = false;
 								}else{
-									wallsShapeHighlight.remove(wallsShapeHighlight.children[wallsShapeHighlight.children.length - 1]);
-									wallsShapeHighlight.add(wallEdge);
-								}
+									if(kitchenwalls.editStage < 4){
+										kitchenwalls.editStage++;
+										click = false;
+									}
+									if(kitchenwalls.editStage == 4){
+										kitchenwalls.editStage = 0;
+										kitchenwalls.extrudedWall = kitchenwalls.kitchenWall.children[kitchenwalls.kitchenWall.children.length - 1];
+										var copyEditPoints = JSON.parse(JSON.stringify(kitchenwalls.editPoints));
+										kitchenwalls.remove.push(copyEditPoints);
+										kitchenwalls.editPoints = {first: {x: 0, y: 0, z: 0}, second: {x: 0, y: 0, z: 0}, height: 0, depth: 0, rotation: 0, midPoint: {x: 0, y: 0, z: 0}};
+										kitchenwalls.selectedFace = {face: {normal: new THREE.Vector3(0,1,0)}};
+										kitchenwalls.selectedFaceVertices = null;
+									}
+								}*/
 							}
-							if(del){
-								wallsShape.pop();
-								wallsShapeHighlight.remove(wallsShapeHighlight.children[wallsShapeHighlight.children.length - 1]);
-								del = false;
+							if(click && !shift && !intersects[0]){
+								kitchenwalls.selectedFace = null;
+							}
+							if(kitchenwalls.selectedFace){
+								if(del && kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage > 0){
+									kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage--;
+									del = false;
+								}
+								/*var a = kitchenwalls.selectedFaceVertices.v1;
+								var b = kitchenwalls.selectedFaceVertices.v2;
+								var c = kitchenwalls.selectedFaceVertices.v3;
+								var d = kitchenwalls.selectedFaceVertices.v4;
+								var geom = new THREE.Geometry();
+								geom.vertices.push(a,b,c,d);
+								geom.faces.push(new THREE.Face3(0,1,2));
+								geom.faces.push(new THREE.Face3(2,3,0));
+								geom.computeLineDistances();
+								geom.computeFaceNormals();
+								var mesh = new THREE.Mesh( geom, new THREE.MeshBasicMaterial( { color: 0xFF00FF, opacity: 0.25, transparent: true, wireframe: true } ));
+								mesh.material.side = THREE.DoubleSide;
+								scene.add(mesh);
+								mesh.visible = false;
+								checkIntersect(mesh);*/
+								//if(intersects[0].object.name == kitchenwalls.selectedFace){
+									if(kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage == 0){
+										kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1 = new THREE.Vector3(intersects[0].point.x, 1, intersects[0].point.z);								
+									}
+									if(kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage == 1){
+										kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2 = new THREE.Vector3(intersects[0].point.x, 1, intersects[0].point.z);								
+									}
+									if(kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage == 2){
+										kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo3 = new THREE.Vector3(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.x, intersects[0].point.y, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.z);
+										kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo4 = new THREE.Vector3(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.x, intersects[0].point.y, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.z);
+										kitchenwalls.wallFaces[kitchenwalls.selectedFace].depth = 0;								
+									}
+									if(kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage == 3){
+										var midPoint = new THREE.Vector3(smallerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.x, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.x) + ((largerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.x, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.x) - smallerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.x, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.x))/2), 1, smallerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.z, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.z) + ((largerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.z, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.z) - smallerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.z, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.z))/2));
+										depthPlane.position = midPoint;
+										depthPlane.rotation.y = kitchenwalls.wallFaces[kitchenwalls.selectedFace].theta + Math.PI/2;
+										depthPlane.geometry.verticesNeedUpdate = true;	
+										checkIntersect(depthPlane);
+										if(intersects[0]){
+											kitchenwalls.wallFaces[kitchenwalls.selectedFace].depth = Math.sqrt(squared(intersects[0].point.x - midPoint.x) + squared(intersects[0].point.z - midPoint.z));
+										}
+									}
+								//}
+								//scene.remove(mesh);
 							}
 						}
 					}
-					click = false;
+					//click = false;
 					arrow.visible = false;
-				}				
-
+				//}				
+				MeasuringTape.setHTMLLocation();
 				
 				//process click
 				if(click){
@@ -371,19 +514,25 @@
 			}
 
 			function checkIntersect(objects){
+				if ( objects instanceof Array === false ) objects = [ objects ];
+				var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
 				var projector = new THREE.Projector();
-				var mouseVector = new THREE.Vector3();
-				mouseVector.x = mouse.x;
-				mouseVector.y = mouse.y;
-				var raycaster = projector.pickingRay( mouseVector.clone(), camera );
-				intersects = raycaster.intersectObjects( objects, true );
+				projector.unprojectVector( vector, camera );				
+				var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+				intersects = raycaster.intersectObjects(objects, true);
+				if(intersects[0]){
+					console.log(intersects[0].object.name);
+				}
 			}
 
 			function onMouseDown(e){
 				// update the mouse variable
-				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+				mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
 				click = true;
+				//checkIntersect(floor);
+				//MeasuringTape.setLocation(intersects[0].point);
+				console.log("click");
 			}
 
 			function onMouseUp(e){
@@ -393,8 +542,12 @@
 
 			function onMouseMove(e){
 				// update the mouse variable
-				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+				mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+				//MeasuringTape.setOrientation(new THREE.Vector3(mouse.x ,0, mouse.y));
+				//checkIntersect(floor);
+				//MeasuringTape.setOrientation(intersects[0].point);
+				//MeasuringTape.setLength(intersects[0].point);
 			}
 
 			function initPlanes(){
@@ -410,9 +563,13 @@
 				XZplane.visible = false;
 				XZplane.material.side = THREE.DoubleSide;
 				XZplane.rotation.x = -Math.PI/2;
+				depthPlane = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0xFF00FF, opacity: 0.25, transparent: true, wireframe: true } ) );
+				depthPlane.visible = false;
+				depthPlane.material.side = THREE.DoubleSide;
 				scene.add( XYplane );
 				scene.add( YZplane );
 				scene.add( XZplane );
+				scene.add(depthPlane);
 			}
 
 			function setAxisPosition(position){
@@ -422,91 +579,16 @@
 				XZplane.position = position;
 			}
 
-			function createArrow(){
-				var points = [];
-				points.push(new THREE.Vector3(0,0,7));
-				points.push(new THREE.Vector3(2,0,3));
-				points.push(new THREE.Vector3(1,0,3));
-				points.push(new THREE.Vector3(1,0,-3));
-				points.push(new THREE.Vector3(2,0,-3));
-				points.push(new THREE.Vector3(0,0,-7));
-				points.push(new THREE.Vector3(-2,0,-3));
-				points.push(new THREE.Vector3(-1,0,-3));
-				points.push(new THREE.Vector3(-1,0,3));
-				points.push(new THREE.Vector3(-2,0,3));
-				points.push(new THREE.Vector3(0,0,7));
-				var geometry = new THREE.LatheGeometry(points, 24);
-				arrow = new THREE.Mesh(geometry, panelMatBlack);
-				arrow.scale.set(3,3,3);
-				arrow.visible = false;
-				arrow.name = "arrow";
-				scene.add(arrow);
-			}
-
-			function setArrow(){
-				if(intersects[0].face.normal.x != 0){
-					if(intersects[0].face.normal.x > 0){
-						arrow.rotation.y = Math.PI/2;
-						arrow.rotation.x = 0;
-						arrow.position.x = (container[selected.index].location.x + (container[selected.index].overallSize.x) + 25);
-						arrow.position.z = (container[selected.index].location.z + (container[selected.index].overallSize.y / 2));
-						arrow.position.y = (container[selected.index].location.y + (container[selected.index].overallSize.z / 2));
-						arrow.visible = true;
-					}else{
-						arrow.rotation.y = Math.PI/2;
-						arrow.rotation.x = 0;
-						arrow.position.x = (container[selected.index].location.x - 25);
-						arrow.position.z = (container[selected.index].location.z + (container[selected.index].overallSize.y / 2));
-						arrow.position.y = (container[selected.index].location.y + (container[selected.index].overallSize.z / 2));
-						arrow.visible = true;
-					}
-				}
-				if(intersects[0].face.normal.z != 0){
-					if(intersects[0].face.normal.z > 0){
-						arrow.rotation.y = 0;
-						arrow.rotation.x = 0;
-						arrow.position.x = (container[selected.index].location.x + (container[selected.index].overallSize.x / 2));
-						arrow.position.z = (container[selected.index].location.z + (container[selected.index].overallSize.y) + 25);
-						arrow.position.y = (container[selected.index].location.y + (container[selected.index].overallSize.z / 2));
-						arrow.visible = true;
-					}else{
-						arrow.rotation.y = 0;
-						arrow.rotation.x = 0;
-						arrow.position.x = (container[selected.index].location.x + (container[selected.index].overallSize.x / 2));
-						arrow.position.z = (container[selected.index].location.z - 25);
-						arrow.position.y = (container[selected.index].location.y + (container[selected.index].overallSize.z / 2));
-						arrow.visible = true;
-					}
-				}
-				if(intersects[0].face.normal.y != 0){
-					if(intersects[0].face.normal.y > 0){
-						arrow.rotation.y = 0;
-						arrow.rotation.x = Math.PI/2;
-						arrow.position.x = (container[selected.index].location.x + (container[selected.index].overallSize.x / 2));
-						arrow.position.z = (container[selected.index].location.z + (container[selected.index].overallSize.y / 2));
-						arrow.position.y = (container[selected.index].location.y + (container[selected.index].overallSize.z) + 25);
-						arrow.visible = true;
-					}else{
-						arrow.rotation.y = 0;
-						arrow.rotation.x = Math.PI/2;
-						arrow.position.x = (container[selected.index].location.x + (container[selected.index].overallSize.x / 2));
-						arrow.position.z = (container[selected.index].location.z + (container[selected.index].overallSize.y / 2));
-						arrow.position.y = (container[selected.index].location.y - 25);
-						arrow.visible = true;
-					}
-				}
-			}
-
-			function roundToNearest(numX, numY, nearest, threshold){
+			function roundToNearest(numX, numY, nearX, nearY, nearest, threshold){
 				var value = {x: numX, z: numY, near: 0};
 				var upX = Math.ceil(numX/nearest)*nearest;
 				var downX = Math.floor(numX/nearest)*nearest;
 				var upY = Math.ceil(numY/nearest)*nearest;
 				var downY = Math.floor(numY/nearest)*nearest;
 				var nearArray = [{x: upX, z: upY, near: getLength(numX, numY, upX, upY)}, {x: upX, z: downY, near: getLength(numX, numY, upX, downY)}, {x: downX, z: downY, near: getLength(numX, numY, downX, downY)}, {x: downX, z: upY, near: getLength(numX, numY, downX, upY)}];
-				if(wallsShape.length > 0){
-					for(var i = 0; i < wallsShape.length; i++){
-						nearArray.push({x: wallsShape[i].x, z: wallsShape[i].y, near: getLength(numX, numY, wallsShape[i].x, wallsShape[i].y)});
+				if(kitchenwalls.plan.length > 0){
+					for(var i = 0; i < kitchenwalls.plan.length; i++){
+						nearArray.push({x: kitchenwalls.plan[i].x, z: kitchenwalls.plan[i].y, near: getLength(numX, numY, kitchenwalls.plan[i].x, kitchenwalls.plan[i].y)});
 					}
 				}
 				nearArray.sort(
@@ -520,28 +602,59 @@
 				);
 				if(Math.sqrt((nearArray[0].x - numX) * (nearArray[0].x - numX)) < threshold){
 					value.x = nearArray[0].x;
+				}else{
+					value.x = Math.floor(value.x);
 				}
 				if(Math.sqrt((nearArray[0].z - numY) * (nearArray[0].z - numY)) < threshold){
 					value.z = nearArray[0].z;
+				}else{
+					value.z = Math.floor(value.z);
+				}
+				if(Math.abs(numX - nearX) < threshold){
+					value.x = nearX;
+				}
+				if(Math.abs(numY - nearY) < threshold){
+					value.z = nearY;
 				}
 				return value;
 				
 			}
 
-			function cylinderAsLine(x, y, a, b){
-				console.log(x + " , " + y + " , " + a + " , " + b)
+			function cylinderAsLine(x, y, a, b, colour){
+				//console.log(x + " , " + y + " , " + a + " , " + b)
 				var cylinder;
 				var _length = Math.sqrt(((a - x) * (a - x)) + ((b - y) * (b - y)));
 				var _offset = {x: Math.abs(a - x)/2 + smallerValue(a, x), y: Math.abs(b - y)/2 + smallerValue(b, y)};
 				var _rotation = Math.atan((b - y)/(a - x));
 				var _geometry = new THREE.CylinderGeometry(2, 2, _length, 20);
-				var _material = new THREE.MeshBasicMaterial({color: 0xffae00});
+				var _material = new THREE.MeshBasicMaterial({color: colour});
 				cylinder = new THREE.Mesh(_geometry, _material);
+				cylinder.name = "boundary";
 				cylinder.rotation.x = Math.PI/2;
 				cylinder.rotation.z = _rotation + Math.PI/2;
 				cylinder.position.x = _offset.x;
 				cylinder.position.z = _offset.y;
 				return cylinder;
+			}
+
+			function cylinderAsLine3D(x, y, z, a, b, c, colour){
+				var cylinder;
+				var _length = Math.sqrt(squared(Math.sqrt(squared(a - x) + squared(b - y))) + squared(c - z));
+				var _offset = {x: Math.abs(a - x)/2 + smallerValue(a, x), y: Math.abs(b - y)/2 + smallerValue(b, y), z: Math.abs(c - z)/2 + smallerValue(c, z)};
+				var _vector = new THREE.Vector3().subVectors(new THREE.Vector3(x, y, z), new THREE.Vector3(a, b, c));
+				_vector.normalize();
+				var _quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), _vector);
+				var _geometry = new THREE.CylinderGeometry(2, 2, _length, 20);
+				_geometry.applyMatrix(new THREE.Matrix4().makeRotationFromQuaternion(_quaternion));
+				_geometry.applyMatrix(new THREE.Matrix4().makeTranslation(_offset.x, _offset.y, _offset.z));
+				_geometry.verticesNeedUpdate = true;
+				var _material = new THREE.MeshBasicMaterial({color: colour});
+				cylinder = new THREE.Mesh(_geometry, _material);
+				return cylinder;
+			}
+
+			function squared(x){
+				return (x * x);
 			}
 
 			function smallerValue(x, y){
@@ -552,109 +665,149 @@
 				}
 			}
 
+			function largerValue(x, y){
+				if(x > y){
+					return x;
+				}else{
+					return y;
+				}
+			}
+
 			function getLength(x, y, a, b){
 				return Math.sqrt(((x - a)*(x - a)) + ((y - b)*(y - b)));
 			}
-/*			var scene = new THREE.Scene();;
-			var camera = new THREE.PerspectiveCamera( 65, window.innerWidth / window.innerHeight, 0.1, 1000 );
-			var renderer = new THREE.WebGLRenderer();
-			var controls = new THREE.OrbitControls(camera, document, renderer.domElement);
-			var windowResize = new THREEx.WindowResize(renderer, camera)
-			renderer.setSize(window.innerWidth, window.innerHeight);
-			document.body.appendChild(renderer.domElement);
-			renderer.shadowMapEnabled = true;
-			var geometry = new THREE.PlaneGeometry(50,50,100,100);
-			var highlightGeometry = new THREE.Geometry();
-			var mainMaterial = new THREE.MeshLambertMaterial( { color: 0x507837, vertexColors: THREE.FaceColors, shading: THREE.FlatShading } );
-			var highlightMaterial = new THREE.MeshBasicMaterial({color: 0x0a0a0a, wireframe: true, transparent: true });
-			var material =[ new THREE.MeshLambertMaterial( { color: 0x808080, vertexColors: THREE.FaceColors, shading: THREE.FlatShading } )];
-			
-			var cube = new THREE.Mesh(geometry, mainMaterial);
-			var highlight = new THREE.Line(highlightGeometry,highlightMaterial);
-			highlight.rotation.x = -45;
-			cube.geometry.dynamic = true;
-			highlight.geometry.dynamic = true;
-			var intersects;
-			//cube.rotation.y = 0.3;
-			cube.rotation.x = -45;
-			cube.castShadow = true;
-			cube.receiveShadow = true;
-			scene.add(cube);		
 
-			var mainLight = 0.8;
-			var otherLights = 0.15;
-			var light = new THREE.AmbientLight( 0x222222 ); // soft white light
-			scene.add( light );
-			var light = new THREE.PointLight(0xffffff,mainLight,4500);
-			light.position.set(500,800,500);
-			scene.add(light);
-/*			var light = new THREE.PointLight(0xffffff,otherLights,4500);
-			light.position.set(0,500,500);
-			scene.add(light);
-			var light = new THREE.PointLight(0xffffff,otherLights,4500);
-			light.position.set(-500,500,500);
-			scene.add(light);
-			var light = new THREE.PointLight(0xffffff,otherLights,4500);
-			light.position.set(-500,500,0);
-			scene.add(light);
-			var light = new THREE.PointLight(0xffffff,otherLights,4500);
-			light.position.set(-500,500,-500);
-			scene.add(light);
-			var light = new THREE.PointLight(0xffffff,otherLights,4500);
-			light.position.set(0,500,-500);
-			scene.add(light);
-			var light = new THREE.PointLight(0xffffff,otherLights,4500);
-			light.position.set(500,100,-500);
-			scene.add(light);
-			var light = new THREE.PointLight(0xffffff,otherLights,4500);
-			light.position.set(500,100,0);
-			scene.add(light);
+			function sortVertices(geometry, verticesIndexes){
+				var v1, v2, v3, v4;
+				var xArray = [], yArray = [], zArray = [];
+				var highY = [], lowY = [], highXhighY = [], lowXhighY = [], highXlowY = [], lowXlowY = [], highZhighY = [], lowZhighY = [], highZlowY = [], lowZlowY = [];
 
-			//window.addEventListener( 'mousemove', onMouseMove, false );
-			window.addEventListener( 'click', onMouseClick, false );
+				for(var j = 0; j < verticesIndexes.length; j++){
+					xArray.push(geometry.vertices[verticesIndexes[j]].x);
+					yArray.push(geometry.vertices[verticesIndexes[j]].y);
+					zArray.push(geometry.vertices[verticesIndexes[j]].z);
+				}	
 
-			function onMouseClick(e){
-				var projector = new THREE.Projector();
-				var mouseVector = new THREE.Vector3();
-				mouseVector.x = 2 * (e.clientX / window.innerWidth) - 1;
-				mouseVector.y = 1 - 2 * ( e.clientY / window.innerHeight );
-				var raycaster = projector.pickingRay( mouseVector.clone(), camera );
-				intersects = raycaster.intersectObjects( scene.children );
-				if(intersects[0]){
-					intersects[0].object.geometry.vertices[intersects[0].face.a].z += 0.1;
-					intersects[0].object.geometry.vertices[intersects[0].face.b].z += 0.1;
-					intersects[0].object.geometry.vertices[intersects[0].face.c].z += 0.1;
-					intersects[0].object.geometry.computeFaceNormals();
-					intersects[0].object.geometry.computeVertexNormals();
-					intersects[0].object.geometry.verticesNeedUpdate = true;
-					intersects[0].object.geometry.normalsNeedUpdate = true;
+				xArray.sort(function(a,b){return a - b});
+				yArray.sort(function(a,b){return a - b});
+				zArray.sort(function(a,b){return a - b});
+
+				for(var i = 0; i < verticesIndexes.length; i++){
+					if(geometry.vertices[verticesIndexes[i]].y > yArray[0]){
+						highY.push(geometry.vertices[verticesIndexes[i]]);
+					}else{
+						lowY.push(geometry.vertices[verticesIndexes[i]]);
+					}
 				}
-			}*/
-/*
-			function onMouseMove(e){
-				var projector = new THREE.Projector();
-				var mouseVector = new THREE.Vector3();
-				mouseVector.x = 2 * (e.clientX / window.innerWidth) - 1;
-				mouseVector.y = 1 - 2 * ( e.clientY / window.innerHeight );
-				scene.remove(highlight);
-				var raycaster = projector.pickingRay( mouseVector.clone(), camera );
-				intersects = raycaster.intersectObjects( scene.children );
-				if(intersects[0]){
-					var sharedVertex = intersects[0].face.c;
-					for(var i = 0; i < intersects[0].object.geometry.faces.length; i++){
-						if(intersects[0].object.geometry.faces[i].c == sharedVertex){
-							highlight.geometry.faces.push(intersects[0].object.geometry.faces[i].clone());
+
+				if(xArray[0] != xArray[xArray.length - 1]){
+					for(var k = 0; k < highY.length; k++){
+						if(highY[k].x > xArray[0]){
+							highXhighY.push(highY[k]);
+						}else{
+							lowXhighY.push(highY[k]);
 						}
 					}
-					highlight.geometry.faces.push(intersects[0].face.clone());
-					highlightGeometry.elementsNeedUpdate = true;
-					//highlight = new THREE.Line(highlightGeometry,highlightMaterial);
-					//highlight.rotation.x = -45;
-					highlight.position.z = 0.1;
-					scene.add(highlight);
-					renderer.render(scene, camera);
+					for(var k = 0; k < lowY.length; k++){
+						if(lowY[k].x > xArray[0]){
+							highXlowY.push(lowY[k]);
+						}else{
+							lowXlowY.push(lowY[k]);
+						}
+					}
+					v1 = lowXlowY[0];
+					v2 = lowXhighY[0];
+					v3 = highXhighY[0];
+					v4 = highXlowY[0];
+				}else{
+					for(var k = 0; k < highY.length; k++){
+						if(highY[k].z > zArray[0]){
+							highZhighY.push(highY[k]);
+						}else{
+							lowZhighY.push(highY[k]);
+						}
+					}
+					for(var k = 0; k < lowY.length; k++){
+						if(lowY[k].z > zArray[0]){
+							highZlowY.push(lowY[k]);
+						}else{
+							lowZlowY.push(lowY[k]);
+						}
+					}
+					v1 = lowZlowY[0];
+					v2 = lowZhighY[0];
+					v3 = highZhighY[0];
+					v4 = highZlowY[0];
 				}
+
+				return {v1: v1, v2: v2, v3: v3, v4: v4};
+			}
+
+			function determineIfNormalSame(vector, p1, p2, p3){
+				var a, b, c;
+				a = new THREE.Vector3().subVectors(p2, p1);
+				b = new THREE.Vector3().subVectors(p3, p1);
+				a.cross(b);
+				a.normalize();
+				a.x = Math.round(a.x * 100000) / 100000;
+				a.y = Math.round(a.y * 100000) / 100000;
+				a.z = Math.round(a.z * 100000) / 100000;
+				vector.x = Math.round(vector.x * 100000) / 100000;
+				vector.y = Math.round(vector.y * 100000) / 100000;
+				vector.z = Math.round(vector.z * 100000) / 100000;
+				return a.equals(vector);
+			}
+
+			function roundVerticesToInt(object){
+				for (var i = 0; i < object.geometry.vertices.length; i++) {
+					object.geometry.vertices[i].x = Math.round(object.geometry.vertices[i].x);
+					object.geometry.vertices[i].y = Math.round(object.geometry.vertices[i].y);
+					object.geometry.vertices[i].z = Math.round(object.geometry.vertices[i].z);
+				};
+				object.geometry.verticesNeedUpdate = true;
+			}
+
+			wallFace = function(v1, v2, height){
+				this.v1 = v1;
+				this.v2 = v2;
+				this.v3 = new THREE.Vector3(v2.x, height, v2.z);
+				this.v4 = new THREE.Vector3(v1.x, height, v1.z);
+				this.vo1 = new THREE.Vector3();
+				this.vo2 = new THREE.Vector3();
+				this.vo3 = new THREE.Vector3();
+				this.vo4 = new THREE.Vector3();
+				this.depth = 0;
+				this.normal = new THREE.Vector3().crossVectors(new THREE.Vector3().subVectors(this.v2, this.v1), new THREE.Vector3().subVectors(this.v3, this.v1));
+				this.editStage = 0;
+				this.width = Math.sqrt(squared(largerValue(v1.x, v2.x) - smallerValue(v1.x, v2.x)) + squared(largerValue(v1.z, v2.z) - smallerValue(v1.z, v2.z)));
+				this.height = height;
+				this.center = new THREE.Vector3(Math.abs(v1.x - v2.x)/2 + smallerValue(v1.x, v2.x), height/2, Math.abs(v1.z - v2.z)/2 + smallerValue(v1.z, v2.z));
+				this.theta = Math.atan((this.v2.x - this.v1.x)/(this.v2.z - this.v1.z)) + Math.PI/2;
+			}
+
+/*			function worldToScreen(location){
+				var pos = location.clone();
+            	projScreenMat = new THREE.Matrix4();
+            	projScreenMat.multiplyMatrices( camera.projectionMatrix, camera.matrixWorld );
+            	//pos.applyMatrix4( projScreenMat );
+            	pos.applyMatrix4(camera.projectionMatrix);
+
+            	return { x: ( pos.x + 1 )/2 * window.innerWidth, y: ( 1 - pos.z)/2 * window.innerHeight };
+            	//return { x: pos.x + window.innerWidth/2, y: pos.z + window.innerHeight/2};
 			}*/
+
+			function worldToScreen(location){
+				var width = window.innerWidth, height = window.innerHeight;
+				var widthHalf = width / 2, heightHalf = height / 2;
+
+				var vector = new THREE.Vector3();
+				var projector = new THREE.Projector();
+				projector.projectVector( location, camera );
+
+				vector.x = ( -location.x * widthHalf ) + widthHalf - 40;
+				vector.y = - ( location.y * heightHalf ) + heightHalf - 40;
+				return vector;
+			}
 		</script> 
 	</body>
 </html>

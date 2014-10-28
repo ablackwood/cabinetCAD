@@ -67,7 +67,7 @@ THREE.OrbitControls = function ( object, domElement, localElement ) {
 	// Set to true to disable use of the keys
 	this.noKeys = false;
 	// The four arrow keys
-	this.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40, SHIFT: 16, A: 65, BSPACE: 8, DEL: 46};
+	this.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40, SHIFT: 16, A: 65, BSPACE: 8, DEL: 46, Z: 90};
 
 	////////////
 	// internals
@@ -460,6 +460,14 @@ THREE.OrbitControls = function ( object, domElement, localElement ) {
 					_a = false;
 				}else{
 					_a = true;
+				}
+				break;
+			case scope.keys.Z:
+				if(_z){
+					_z = false;
+				}else{
+					_z = true;
+					hide("#extrude_text", "#edit_text");
 				}
 				break;
 		}
