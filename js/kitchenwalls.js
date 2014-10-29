@@ -311,7 +311,7 @@ THREE.KitchenWalls = function(){
 		if(this.plan.length > 0){
 			var nearest = roundToNearest(intersectPlane[0].point.x, intersectPlane[0].point.z, this.plan[this.plan.length - 1].x, this.plan[this.plan.length - 1].y, 100, 10);			
 		}else{
-			var nearest = roundToNearest(intersectPlane[0].point.x, intersectPlane[0].point.z, -1, -1, 100, 10);
+			var nearest = roundToNearest(intersectPlane[0].point.x, intersectPlane[0].point.z, 0, 0, 100, 10);
 		}
 
 		return nearest;

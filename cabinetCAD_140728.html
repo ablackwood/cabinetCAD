@@ -273,239 +273,79 @@
 				update();
 			}
 
-			function update()
-			{
-				/*checkIntersect( cabinets.children );
-
-				if(intersects[0] && !selected.selected){
-					for(var i = 0; i < container.length; i++){
-						container[i].boundingBox.visibleFalse();
-					}
-					container[parseInt(intersects[0].object.name)].boundingBox.visibleTrue();
-
-					intersects[0].face.color.setHex(0xfff555);
-					intersects[0].object.geometry.colorsNeedUpdate = true;
-
-					if(click && !shift && !moving){
-						if(selected.selected){
-							selected.selected = false;
-							container[selected.index].boundingBox.setUnselected();
-						}else{
-							selected.selected = true;
-							selected.index = parseInt(intersects[0].object.name);
-							for(var i = 0; i < container.length; i++){
-								container[i].boundingBox.setUnselected();
-							}
-							container[selected.index].boundingBox.setSelected();
-						}
-						//click = false;
-					}
-					arrow.visible = false;
-				}else if(intersects[0] && selected.selected){
-					if(intersects[0].object.name == container[selected.index].cabinet.name && !click && !moving){
-						setArrow();
-						setAxisPosition(intersects[0].point);
-						pointOnFace.x = intersects[0].point.x * intersects[0].face.normal.x;
-						pointOnFace.y = intersects[0].point.y * intersects[0].face.normal.y;
-						pointOnFace.z = intersects[0].point.z * intersects[0].face.normal.z;
-						initialSize.x = container[intersects[0].object.name].overallSize.x;
-						initialSize.y = container[intersects[0].object.name].overallSize.y;
-						initialSize.z = container[intersects[0].object.name].overallSize.z;
-					}
+			function update(){
+				if(_a){
+					circle.visible = true;
 					if(click && !shift){
-						moving = true;
-						var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
-						var projector = new THREE.Projector();
-						projector.unprojectVector( vector, camera );
-						
-						var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
-						if(pointOnFace.x != 0){
-							var intersectPlane = raycaster.intersectObject(XZplane);
-							var newSize = initialSize.x + ( intersectPlane[0].point.x - pointOnFace.x);
-							if(newSize < 20){
-								container[intersects[0].object.name].overallSize.x = 20;
-							}else if(newSize > 100){
-								container[intersects[0].object.name].overallSize.x = 100;
-							}else{
-								container[intersects[0].object.name].overallSize.x = newSize;
-							}
-							for (var i = scene.children.length - 1; i > 0; i--) {
-								if(scene.children[i].name == "line"){
-									scene.remove(scene.children[i]);
-								}
-							};
-							container[intersects[0].object.name].drawCabinet();
-							container[intersects[0].object.name].boundingBox.visibleTrue();
-							setArrow();
-						}else if(pointOnFace.z != 0){
-							var intersectPlane = raycaster.intersectObject(YZplane);
-							var newSize = initialSize.y + ((intersectPlane[0].point.z - pointOnFace.z));
-							if(newSize < 20){
-								container[intersects[0].object.name].overallSize.y = 20;
-							}else if(newSize > 160){
-								container[intersects[0].object.name].overallSize.y = 160;
-							}else{
-								container[intersects[0].object.name].overallSize.y = newSize;
-							}
-							for (var i = scene.children.length - 1; i > 0; i--) {
-								if(scene.children[i].name == "line"){
-									scene.remove(scene.children[i]);
-								}
-							};
-							container[intersects[0].object.name].drawCabinet();
-							container[intersects[0].object.name].boundingBox.visibleTrue();
-							setArrow();
-						}else if(pointOnFace.y != 0){
-							var intersectPlane = raycaster.intersectObject(XYplane);
-							var newSize = initialSize.z + ( intersectPlane[0].point.y - pointOnFace.y);
-							if(newSize < 20){
-								container[intersects[0].object.name].overallSize.z = 20;
-							}else if(newSize > 100){
-								container[intersects[0].object.name].overallSize.z = 100;
-							}else{
-								container[intersects[0].object.name].overallSize.z = newSize;
-							}
-							for (var i = scene.children.length - 1; i > 0; i--) {
-								if(scene.children[i].name == "line"){
-									scene.remove(scene.children[i]);
-								}
-							};
-							container[intersects[0].object.name].drawCabinet();
-							container[intersects[0].object.name].boundingBox.visibleTrue();
-							setArrow();
+						if(kitchenwalls.layingOut){
+							kitchenwalls.addPoint(circle.position.x, circle.position.z);
+							MeasuringTape.setLocation(new THREE.Vector3(circle.position.x, 0, circle.position.z));
 						}
-					}
-				}else{
-					for(var i = 0; i < container.length; i++){
-						if(!selected.selected){
-							container[i].boundingBox.visibleFalse();
-						}
-						container[i].removeArrow();
-					}
-					if(click && !shift && !_a){
-						selected.selected = false;
-						container[selected.index].boundingBox.setUnselected();
-					}*/
-					if(_a){
-						circle.visible = true;
-						
-						//console.log("redraw");
-						if(click && !shift){
-							if(kitchenwalls.layingOut){
-								kitchenwalls.addPoint(circle.position.x, circle.position.z);
-								MeasuringTape.setLocation(new THREE.Vector3(circle.position.x, 0, circle.position.z));
-							}
-							if(kitchenwalls.extruding){
-								checkIntersect([YZplane]);
-								if(intersects[0]){
-									kitchenwalls.extrude(intersects[0].point.y);
-								}
-							}
-
-						}
-						if(del && !_z){
-							kitchenwalls.deletePoint();
-						}
-						kitchenwalls.redraw();
-						if(_z){
-							kitchenwalls.extruding = false;
-							kitchenwalls.editMode = true;
-							checkIntersect(kitchenwalls.kitchenWall.children[kitchenwalls.kitchenWall.children.length - 1]);
+						if(kitchenwalls.extruding){
+							checkIntersect([YZplane]);
 							if(intersects[0]){
-								kitchenwalls.highlightedFace = intersects[0].object.name;
-							}else{
-								kitchenwalls.highlightedFace = null;
-							}
-							//kitchenwalls.highlightedFace = intersects[0];
-							if(click && !shift && intersects[0]){
-								if(kitchenwalls.selectedFace != intersects[0].object.name){
-									kitchenwalls.selectedFace = intersects[0].object.name;
-									click = false;
-								}else{
-									if(kitchenwalls.wallFaces[intersects[0].object.name].editStage < 4){
-										kitchenwalls.wallFaces[intersects[0].object.name].editStage++;
-										click = false;
-									}
-								}
-								/*if(kitchenwalls.selectedFace.face.normal != intersects[0].face.normal){
-								if(kitchenwalls.selectedFace.face.normal.x != intersects[0].face.normal.x || kitchenwalls.selectedFace.face.normal.y != intersects[0].face.normal.y || kitchenwalls.selectedFace.face.normal.z != intersects[0].face.normal.z){
-									kitchenwalls.selectedFace = intersects[0];
-									click = false;
-								}else{
-									if(kitchenwalls.editStage < 4){
-										kitchenwalls.editStage++;
-										click = false;
-									}
-									if(kitchenwalls.editStage == 4){
-										kitchenwalls.editStage = 0;
-										kitchenwalls.extrudedWall = kitchenwalls.kitchenWall.children[kitchenwalls.kitchenWall.children.length - 1];
-										var copyEditPoints = JSON.parse(JSON.stringify(kitchenwalls.editPoints));
-										kitchenwalls.remove.push(copyEditPoints);
-										kitchenwalls.editPoints = {first: {x: 0, y: 0, z: 0}, second: {x: 0, y: 0, z: 0}, height: 0, depth: 0, rotation: 0, midPoint: {x: 0, y: 0, z: 0}};
-										kitchenwalls.selectedFace = {face: {normal: new THREE.Vector3(0,1,0)}};
-										kitchenwalls.selectedFaceVertices = null;
-									}
-								}*/
-							}
-							if(click && !shift && !intersects[0]){
-								kitchenwalls.selectedFace = null;
-							}
-							if(kitchenwalls.selectedFace){
-								if(del && kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage > 0){
-									kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage--;
-									del = false;
-								}
-								/*var a = kitchenwalls.selectedFaceVertices.v1;
-								var b = kitchenwalls.selectedFaceVertices.v2;
-								var c = kitchenwalls.selectedFaceVertices.v3;
-								var d = kitchenwalls.selectedFaceVertices.v4;
-								var geom = new THREE.Geometry();
-								geom.vertices.push(a,b,c,d);
-								geom.faces.push(new THREE.Face3(0,1,2));
-								geom.faces.push(new THREE.Face3(2,3,0));
-								geom.computeLineDistances();
-								geom.computeFaceNormals();
-								var mesh = new THREE.Mesh( geom, new THREE.MeshBasicMaterial( { color: 0xFF00FF, opacity: 0.25, transparent: true, wireframe: true } ));
-								mesh.material.side = THREE.DoubleSide;
-								scene.add(mesh);
-								mesh.visible = false;
-								checkIntersect(mesh);*/
-								//if(intersects[0].object.name == kitchenwalls.selectedFace){
-									if(kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage == 0){
-										kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1 = new THREE.Vector3(intersects[0].point.x, 1, intersects[0].point.z);								
-									}
-									if(kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage == 1){
-										kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2 = new THREE.Vector3(intersects[0].point.x, 1, intersects[0].point.z);								
-									}
-									if(kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage == 2){
-										kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo3 = new THREE.Vector3(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.x, intersects[0].point.y, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.z);
-										kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo4 = new THREE.Vector3(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.x, intersects[0].point.y, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.z);
-										kitchenwalls.wallFaces[kitchenwalls.selectedFace].depth = 0;								
-									}
-									if(kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage == 3){
-										var midPoint = new THREE.Vector3(smallerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.x, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.x) + ((largerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.x, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.x) - smallerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.x, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.x))/2), 1, smallerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.z, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.z) + ((largerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.z, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.z) - smallerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.z, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.z))/2));
-										depthPlane.position = midPoint;
-										depthPlane.rotation.y = kitchenwalls.wallFaces[kitchenwalls.selectedFace].theta + Math.PI/2;
-										depthPlane.geometry.verticesNeedUpdate = true;	
-										checkIntersect(depthPlane);
-										if(intersects[0]){
-											kitchenwalls.wallFaces[kitchenwalls.selectedFace].depth = Math.sqrt(squared(intersects[0].point.x - midPoint.x) + squared(intersects[0].point.z - midPoint.z));
-										}
-									}
-								//}
-								//scene.remove(mesh);
+								kitchenwalls.extrude(intersects[0].point.y);
 							}
 						}
 					}
-					//click = false;
-					arrow.visible = false;
-				//}				
-				MeasuringTape.setHTMLLocation();
-				
-				//process click
-				if(click){
-					
+					if(del && !_z){
+						kitchenwalls.deletePoint();
+					}
+					kitchenwalls.redraw();
+					if(_z){
+						kitchenwalls.extruding = false;
+						kitchenwalls.editMode = true;
+						checkIntersect(kitchenwalls.kitchenWall.children[kitchenwalls.kitchenWall.children.length - 1]);
+						if(intersects[0]){
+							kitchenwalls.highlightedFace = intersects[0].object.name;
+						}else{
+							kitchenwalls.highlightedFace = null;
+						}
+						if(click && !shift && intersects[0]){
+							if(kitchenwalls.selectedFace != intersects[0].object.name){
+								kitchenwalls.selectedFace = intersects[0].object.name;
+								click = false;
+							}else{
+								if(kitchenwalls.wallFaces[intersects[0].object.name].editStage < 4){
+									kitchenwalls.wallFaces[intersects[0].object.name].editStage++;
+									click = false;
+								}
+							}
+						}
+						if(click && !shift && !intersects[0]){
+							kitchenwalls.selectedFace = null;
+						}
+						if(kitchenwalls.selectedFace != null){
+							if(del && kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage > 0){
+								kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage--;
+								del = false;
+							}
+							if(kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage == 0 && intersects[0].object.name == kitchenwalls.selectedFace){
+								kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1 = new THREE.Vector3(intersects[0].point.x, 1, intersects[0].point.z);								
+							}
+							if(kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage == 1 && intersects[0].object.name == kitchenwalls.selectedFace){
+								kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2 = new THREE.Vector3(intersects[0].point.x, 1, intersects[0].point.z);								
+							}
+							if(kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage == 2 && intersects[0].object.name == kitchenwalls.selectedFace){
+								kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo3 = new THREE.Vector3(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.x, intersects[0].point.y, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.z);
+								kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo4 = new THREE.Vector3(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.x, intersects[0].point.y, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.z);
+								kitchenwalls.wallFaces[kitchenwalls.selectedFace].depth = 0;								
+							}
+							if(kitchenwalls.wallFaces[kitchenwalls.selectedFace].editStage == 3 && intersects[0].object.name == kitchenwalls.selectedFace){
+								var midPoint = new THREE.Vector3(smallerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.x, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.x) + ((largerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.x, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.x) - smallerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.x, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.x))/2), 1, smallerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.z, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.z) + ((largerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.z, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.z) - smallerValue(kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo1.z, kitchenwalls.wallFaces[kitchenwalls.selectedFace].vo2.z))/2));
+								depthPlane.position = midPoint;
+								depthPlane.rotation.y = kitchenwalls.wallFaces[kitchenwalls.selectedFace].theta + Math.PI/2;
+								depthPlane.geometry.verticesNeedUpdate = true;	
+								checkIntersect(depthPlane);
+								if(intersects[0]){
+									kitchenwalls.wallFaces[kitchenwalls.selectedFace].depth = Math.sqrt(squared(intersects[0].point.x - midPoint.x) + squared(intersects[0].point.z - midPoint.z));
+								}
+							}
+						}
+					}
 				}
+				arrow.visible = false;			
+				MeasuringTape.setHTMLLocation();
 			}
 
 			function render() 
@@ -784,17 +624,6 @@
 				this.center = new THREE.Vector3(Math.abs(v1.x - v2.x)/2 + smallerValue(v1.x, v2.x), height/2, Math.abs(v1.z - v2.z)/2 + smallerValue(v1.z, v2.z));
 				this.theta = Math.atan((this.v2.x - this.v1.x)/(this.v2.z - this.v1.z)) + Math.PI/2;
 			}
-
-/*			function worldToScreen(location){
-				var pos = location.clone();
-            	projScreenMat = new THREE.Matrix4();
-            	projScreenMat.multiplyMatrices( camera.projectionMatrix, camera.matrixWorld );
-            	//pos.applyMatrix4( projScreenMat );
-            	pos.applyMatrix4(camera.projectionMatrix);
-
-            	return { x: ( pos.x + 1 )/2 * window.innerWidth, y: ( 1 - pos.z)/2 * window.innerHeight };
-            	//return { x: pos.x + window.innerWidth/2, y: pos.z + window.innerHeight/2};
-			}*/
 
 			function worldToScreen(location){
 				var width = window.innerWidth, height = window.innerHeight;
